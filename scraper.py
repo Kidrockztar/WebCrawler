@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -15,14 +16,26 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    return list()
+    
+    linkList = []
+    if resp.status == 200:
+        soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+        for link in soup.find_all('a'):
+            linkList.append(link.get('href'))
+        
+    else:
+        print(f"Failed to retrieve the web page. Status code: {resp.status}")
+
+    return linkList
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
     try:
+       
         parsed = urlparse(url)
+         # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
         if parsed.scheme not in set(["http", "https"]):
             return False
         return not re.match(
