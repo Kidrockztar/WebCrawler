@@ -9,6 +9,10 @@ class Crawler(object):
         self.frontier = frontier_factory(config, restart)
         self.workers = list()
         self.worker_factory = worker_factory
+        self.uniquePages = []
+        self.longestHTML = ("", 0)
+        self.tokens = {}
+        self.icsSubDomainCounts = {}
 
     def start_async(self):
         self.workers = [
