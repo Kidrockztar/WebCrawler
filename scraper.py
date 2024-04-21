@@ -2,6 +2,9 @@ import re
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import crawler
+import shelve
+from utils import get_logger, get_urlhash, normalize
+
 
 stopWords = {"we'd", 'his', "you're", 'its', "mustn't", "i'd", "you've", 'that', 'nor', 'only', 'both', 'because', 'through', 'from', 'herself', 'same', 'themselves', 'having', 'this', "we're", 'further', 'your', 'which', "that's", 'down', 'been', 'more', "weren't", 'why', 'with', 'some', 'them', 'below', 'their', "couldn't", 'if', 'then', 'in', 'about', 'i', 'of', "wouldn't", "she's", 'all', "i'm", 'than', 'what', 'when', 'against', 'so', 'he', 'did', "hadn't", 'those', "aren't", 'here', 'yours', "it's", 'be', 'until', "when's", 'no', 'an', "don't", 'not', 'were', "doesn't", 'me', 'on', "there's", 'at', 'any', 'out', "i've", 'over', 'have', 'has', 'we', "they've", "wasn't", "we'll", 'yourselves', 'whom', "hasn't", "they'll", 'a', 'to', 'but', "he'd", 'am', 'her', 'above', 'under', 'the', 'after', "they'd", 'doing', "haven't", 'should', 'him', 'is', 'other', "shouldn't", 'how', 'cannot', 'they', "i'll", 'itself', 'myself', 'himself', 'between', 'it', 'would', 'my', "they're", "she'll", 'ours', 'or', 'was', 'where', "won't", "can't", 'too', "here's", "where's", 'again', 'into', 'most', "let's", 'does', 'by', 'being', 'these', 'such', "he'll", "isn't", "didn't", "who's", 'few', "you'd", 'you', 'do', 'each', 'ourselves', "we've", 'yourself', 'who', 'during', 'our', 'are', "what's", "you'll", 'and', 'as', 'hers', 'once', 'up', 'off', "shan't", 'she', 'there', 'while', "he's", 'could', "how's", 'very', 'before', 'ought', 'for', 'had', "she'd", "why's", 'own', 'theirs'}   
 
@@ -24,6 +27,7 @@ def extract_next_links(url, resp):
     linkList = []
     if resp.status == 200:
         soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+        # Get all of the link tags and add them to the list
         for link in soup.find_all('a'):
             linkList.append(link.get('href'))
     else:
@@ -37,7 +41,7 @@ def is_valid(url):
     # There are already some conditions that return False.
     try:
        
-        parsed = urlparse(url)
+        parsed = urlparse(url) 
          # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
         if parsed.scheme not in set(["http", "https"]):
             return False
@@ -55,46 +59,47 @@ def is_valid(url):
         print ("TypeError for ", parsed)
         raise
 
-def updateTokens(resp, crawler : crawler):
+def updateTokens(crawler : crawler, resp):
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
-    text = soup.getText()
+    # get each paragraph and read all of them
+    text = ""
+    for paragraph in soup.find_all("p"):
+        text += paragraph.get_text() + " "
+    
+    # tokenize it 
+    text = tokenize_text(text)
 
-    tokens = computeWordFrequencies(tokenize(text))
+    # remove stopwords and punctuation
+    tokens = [t for t in text if t not in stopWords]
+    
+    # update longest length with url and count
+    crawler.longest = [normalize(resp.url), len(tokens)]
 
-    for k,v in tokens:
-        if k in crawler.tokens.items():
+    # build frequency dict
+    tokens = computeWordFrequencies(tokens)
+
+    # update counts
+    for k,v in tokens.items():
+        if k in crawler.tokens:
             crawler.tokens[k] += v
         else:
             crawler.tokens[k] = v
 
+def tokenize_text(text):
 
-# This function is O(N) where N is the amount of chars in the file 
-# This is because we loop over all of the chars in the file to compute
-def tokenize(TextFilePath : str) -> list:
-    # returns List<Token>
-    tokenList = []
-    word = []
-    with open(TextFilePath,'rb') as file:
-        while True:
-            # Read 1 byte aka 1 char
-            letter = file.read(1)
-            # Check end of file
-            if not letter:
-                break
-            else:    
-                # Convert to string and ignore weird file stuff
-                letterStr = letter.decode("utf-8", "ignore")
-                if letterStr.isalnum() and letterStr.isascii():
-                    word.append(letterStr)
-                else:
-                    # Convert to lowercase and join into larger string
-                    # Check if there is a token to add
-                    if len(word) >= 1:
-                        tokenList.append(''.join(word).lower())
-                        word = []
-    
-    return tokenList
+    tokens = []
+    current_token = []
+    for char in text:
+        if char.isalnum() and char.isascii():
+            current_token.append(char)
+        else:
+            if len(current_token) >= 1:
+                tokens.append(''.join(current_token).lower())
+                current_token = []
+        
+    return tokens
+
 
 # Computing the word frequencies is also O(N) where N is the ammount of words in the list
 def computeWordFrequencies(TokenList : list) -> dict:
@@ -107,6 +112,15 @@ def computeWordFrequencies(TokenList : list) -> dict:
             wordFrequencies[t] = 1
 
     return wordFrequencies
-
     
+
+def updateSubDomains(crawler:crawler, url):
+    parsedURL = urlparse(url)
+    # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
+    if normalize(parsedURL.scheme + parsedURL.netloc) in crawler.icsSubDomainCounts:
+        crawler.icsSubDomainCounts[parsedURL.netloc] += 1
+    else:
+        crawler.icsSubDomainCounts[parsedURL.netloc] = 0
+
+    crawler.icsSubDomainCounts.sync()
 
