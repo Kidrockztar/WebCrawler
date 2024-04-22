@@ -14,7 +14,6 @@ def scraper(url, resp):
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
-    # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
     # resp.status: the status code returned by the server. 200 is OK, you got the page. Other numbers mean that there was some kind of problem.
@@ -24,16 +23,20 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     
-    linkList = []
-    if resp.status == 200:
-        soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
-        # Get all of the link tags and add them to the list
-        for link in soup.find_all('a'):
-            linkList.append(link.get('href'))
-    else:
-        print(f"Failed to retrieve the web page. Status code: {resp.status}")
+    hyperlinkList = []
 
-    return linkList
+    if resp.status == 200:
+        # Parse the page content using beautiful soup
+        soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+
+        # Iterate through <a> objects, adding the hyperlink to list
+        for link in soup.find_all('a'):
+            hyperlinkList.append(link.get('href'))
+        
+    else:
+        print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
+
+    return hyperlinkList
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -41,12 +44,14 @@ def is_valid(url):
     # There are already some conditions that return False.
     try:
        
-        parsed = urlparse(url) 
-         # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
+        parsed = urlparse(url) # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
+        
         if not checkDomain(parsed.netloc):
             return False
+    
         if parsed.scheme not in set(["http", "https"]):
             return False
+        
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
@@ -61,62 +66,89 @@ def is_valid(url):
         print ("TypeError for ", parsed)
         raise
 
-def checkDomain(netloc):
+def checkDomain(netloc: str) -> bool:
+    # string netloc: Authority aspect of a URL: <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
+    # Return whether netloc is a valid domain
+
+    # Available Domains
     domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
-    parsed = netloc
-    # can sometimes throw back bytes depending on the website
+
+    parsed = netloc # Is there a reason to make a copy of it?
+
+    # Sometimes netloc can be in bytes, ifso, decode to string
     if isinstance(netloc, bytes):
        parsed = netloc.decode('utf-8')  
-    for d in domains:
-        if d in parsed:
+    
+
+    for domain in domains:
+        if domain in parsed:
             return True
+    
+    # If netloc does not match any valid domains, return false
     return False
 
 def updateTokens(crawler : crawler, resp):
-    soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+    if resp.status == 200:
 
-    # get each paragraph and read all of them
-    text = ""
-    for paragraph in soup.find_all("p"):
-        text += paragraph.get_text() + " "
-    
-    # tokenize it 
-    text = tokenize_text(text)
+        # Parse the page content using beautiful soup
+        soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
-    # remove stopwords and punctuation
-    tokens = [t for t in text if t not in stopWords]
-    
-    if(len(tokens) > crawler.longest):
-        crawler.longestFile.clear() 
-        crawler.longestFile[normalize(resp.url)] = len(tokens)
-        crawler.longest = len(tokens)
+        # Iterate and read through each <p> within the text content
+        text = ""
+        for paragraph in soup.find_all("p"):
+            text += paragraph.get_text() + " "
         
+        # Take all text and tokenize it
+        text = tokenize_text(text)
 
-    # build frequency dict
-    tokens = computeWordFrequencies(tokens)
+        # remove stopwords and punctuation
+        tokens = [t for t in text if t not in stopWords]
+        
+        if(len(tokens) > crawler.longest):
+            crawler.longestFile.clear() 
+            crawler.longestFile[normalize(resp.url)] = len(tokens)
+            crawler.longest = len(tokens)
+            
 
-    # update counts
-    for k,v in tokens.items():
-        if k in crawler.tokens:
-            crawler.tokens[k] += v
+        # build frequency dict
+        tokens = computeWordFrequencies(tokens)
+
+        # update counts
+        for k,v in tokens.items():
+            if k in crawler.tokens:
+                crawler.tokens[k] += v
+            else:
+                crawler.tokens[k] = v
+    
+    else:
+        print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
+
+
+def tokenize_text(text: bytes) -> list:
+
+    totalTokens = []
+    currentToken = b''
+
+    # Iterate through bytes instead of reading the whole text
+    byte = text.read(1)
+    
+    while byte:
+        # Check if byte is an alphanumeric (English) character
+        if byte.isascii() and (byte.isalnum() or byte.decode() == "'" or byte.decode() == "-"): # Account for apostrophes or dashes 
+            # Ensure token is not case sensitive
+            currentToken += byte.lower()
         else:
-            crawler.tokens[k] = v
-
-
-def tokenize_text(text):
-    tokens = []
-    current_token = []
+            # Ensure token is not empty
+            if currentToken:
+                totalTokens.append(currentToken.decode()) # Decoding turns bytes into string format for token
+                currentToken = b''
+        byte = text.read(1)
     
+    # Add any remaining token at the end of for loop
+    if currentToken:
+        totalTokens.append(currentToken.decode())
     
-    for char in text:
-        if char.isascii() and (char.isalnum() or char == "'" or char == "-"):
-                current_token.append(char)
-        else:
-            if current_token:
-                tokens.append(''.join(current_token).lower())
-                current_token = []
-    
-    return tokens
+    return totalTokens
 
 
 # Computing the word frequencies is also O(N) where N is the ammount of words in the list
