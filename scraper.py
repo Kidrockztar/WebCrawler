@@ -102,18 +102,20 @@ def updateTokens(crawler : crawler, resp):
         else:
             crawler.tokens[k] = v
 
-def tokenize_text(text):
 
+def tokenize_text(text):
     tokens = []
     current_token = []
+    
+    
     for char in text:
-        if char.isalnum() or char == "'":
-            current_token.append(char)
+        if char.isascii() and (char.isalnum() or char == "'" or char == "-"):
+                current_token.append(char)
         else:
-            if len(current_token) >= 1:
+            if current_token:
                 tokens.append(''.join(current_token).lower())
                 current_token = []
-        
+    
     return tokens
 
 
@@ -139,7 +141,7 @@ def updateSubDomains(crawler:crawler, url):
     else:
         normalURL = normalize(parsedURL.netloc).strip("www.")
 
-    if "ics.uci.edu" in parsedURL.netloc:
+    if "ics.uci.edu" in normalURL and "ics.uci.edu" != normalURL:
         if normalURL in crawler.icsSubDomainCounts:
             crawler.icsSubDomainCounts[normalURL] += 1
         else:
