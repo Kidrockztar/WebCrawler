@@ -13,8 +13,9 @@ class Crawler(object):
         self.frontier = frontier_factory(config, restart)
         self.workers = list()
         self.worker_factory = worker_factory
-        self.longest = shelve.open("longest.shelve")
-        # self.uniquePages = []   Just take len of shelve when done     
+        self.longestFile = shelve.open("longest.shelve")
+        self.longest = 0
+        self.uniquePages = shelve.open("uniquePages.shelve") 
         self.tokens = shelve.open("tokens.shelve")
         self.icsSubDomainCounts = shelve.open("subDomains.shelve")
 

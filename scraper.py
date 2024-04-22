@@ -43,6 +43,8 @@ def is_valid(url):
        
         parsed = urlparse(url) 
          # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
+        if not checkDomain(parsed.netloc):
+            return False
         if parsed.scheme not in set(["http", "https"]):
             return False
         return not re.match(
@@ -59,6 +61,17 @@ def is_valid(url):
         print ("TypeError for ", parsed)
         raise
 
+def checkDomain(netloc):
+    domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
+    parsed = netloc
+    # can sometimes throw back bytes depending on the website
+    if isinstance(netloc, bytes):
+       parsed = netloc.decode('utf-8')  
+    for d in domains:
+        if d in parsed:
+            return True
+    return False
+
 def updateTokens(crawler : crawler, resp):
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
@@ -73,8 +86,11 @@ def updateTokens(crawler : crawler, resp):
     # remove stopwords and punctuation
     tokens = [t for t in text if t not in stopWords]
     
-    # update longest length with url and count
-    crawler.longest = [normalize(resp.url), len(tokens)]
+    if(len(tokens) > crawler.longest):
+        crawler.longestFile.clear() 
+        crawler.longestFile[normalize(resp.url)] = len(tokens)
+        crawler.longest = len(tokens)
+        
 
     # build frequency dict
     tokens = computeWordFrequencies(tokens)
@@ -91,7 +107,7 @@ def tokenize_text(text):
     tokens = []
     current_token = []
     for char in text:
-        if char.isalnum() and char.isascii():
+        if char.isalnum() or char == "'":
             current_token.append(char)
         else:
             if len(current_token) >= 1:
@@ -116,11 +132,24 @@ def computeWordFrequencies(TokenList : list) -> dict:
 
 def updateSubDomains(crawler:crawler, url):
     parsedURL = urlparse(url)
+    normalURL = ""
     # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
-    if normalize(parsedURL.scheme + parsedURL.netloc) in crawler.icsSubDomainCounts:
-        crawler.icsSubDomainCounts[parsedURL.netloc] += 1
+    if isinstance(parsedURL.netloc, bytes):
+        normalURL = normalize(parsedURL.netloc.decode('utf-8')).strip("www.")
     else:
-        crawler.icsSubDomainCounts[parsedURL.netloc] = 0
+        normalURL = normalize(parsedURL.netloc).strip("www.")
 
-    crawler.icsSubDomainCounts.sync()
+    if "ics.uci.edu" in parsedURL.netloc:
+        if normalURL in crawler.icsSubDomainCounts:
+            crawler.icsSubDomainCounts[normalURL] += 1
+        else:
+            crawler.icsSubDomainCounts[normalURL] = 1
 
+    
+
+def updateURLCount(crawler : crawler, url):
+    parsedURL = urlparse(url)
+    noFragmentURL = normalize(parsedURL.scheme+parsedURL.netloc+parsedURL.path)
+
+    if noFragmentURL not in crawler.uniquePages:
+        crawler.uniquePages[noFragmentURL] = True
