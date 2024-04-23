@@ -6,7 +6,11 @@ import shelve
 from utils import get_logger, get_urlhash, normalize
 
 
-stopWords = {"we'd", 'his', "you're", 'its', "mustn't", "i'd", "you've", 'that', 'nor', 'only', 'both', 'because', 'through', 'from', 'herself', 'same', 'themselves', 'having', 'this', "we're", 'further', 'your', 'which', "that's", 'down', 'been', 'more', "weren't", 'why', 'with', 'some', 'them', 'below', 'their', "couldn't", 'if', 'then', 'in', 'about', 'i', 'of', "wouldn't", "she's", 'all', "i'm", 'than', 'what', 'when', 'against', 'so', 'he', 'did', "hadn't", 'those', "aren't", 'here', 'yours', "it's", 'be', 'until', "when's", 'no', 'an', "don't", 'not', 'were', "doesn't", 'me', 'on', "there's", 'at', 'any', 'out', "i've", 'over', 'have', 'has', 'we', "they've", "wasn't", "we'll", 'yourselves', 'whom', "hasn't", "they'll", 'a', 'to', 'but', "he'd", 'am', 'her', 'above', 'under', 'the', 'after', "they'd", 'doing', "haven't", 'should', 'him', 'is', 'other', "shouldn't", 'how', 'cannot', 'they', "i'll", 'itself', 'myself', 'himself', 'between', 'it', 'would', 'my', "they're", "she'll", 'ours', 'or', 'was', 'where', "won't", "can't", 'too', "here's", "where's", 'again', 'into', 'most', "let's", 'does', 'by', 'being', 'these', 'such', "he'll", "isn't", "didn't", "who's", 'few', "you'd", 'you', 'do', 'each', 'ourselves', "we've", 'yourself', 'who', 'during', 'our', 'are', "what's", "you'll", 'and', 'as', 'hers', 'once', 'up', 'off', "shan't", 'she', 'there', 'while', "he's", 'could', "how's", 'very', 'before', 'ought', 'for', 'had', "she'd", "why's", 'own', 'theirs'}   
+stopWords = {"we'd", 'his', "you're", 'its', "mustn't", "i'd", "you've", 'that', 'nor', 'only', 'both', 'because', 'through', 'from', 'herself', 'same', 'themselves', 'having', 'this', "we're", 'further', 'your', 'which', "that's", 'down', 'been', 'more', "weren't", 'why', 'with', 'some', 'them', 'below', 'their', "couldn't", 'if', 'then', 'in', 'about', 'i', 'of', "wouldn't", "she's", 'all', "i'm", 'than', 'what', 'when', 'against', 'so', 'he', 'did', "hadn't", 'those', "aren't", 'here', 'yours', "it's", 'be', 'until', "when's", 'no', 'an', "don't", 'not', 'were', "doesn't", 'me', 'on', "there's", 'at', 'any', 'out', "i've", 'over', 'have', 'has', 'we', "they've", "wasn't", "we'll", 'yourselves', 'whom', "hasn't", "they'll", 'a', 'to', 'but', "he'd", 'am', 'her', 'above', 'under', 'the', 'after', "they'd", 'doing', "haven't", 'should', 'him', 'is', 'other', "shouldn't", 'how', 'cannot', 'they', "i'll", 'itself', 'myself', 'himself', 'between', 'it', 'would', 'my', "they're", "she'll", 'ours', 'or', 'was', 'where', "won't", "can't", 'too', "here's", "where's", 'again', 'into', 'most', "let's", 'does', 'by', 'being', 'these', 'such', "he'll", "isn't", "didn't", "who's", 'few', "you'd", 'you', 'do', 'each', 'ourselves', "we've", 'yourself', 'who', 'during', 'our', 'are', "what's", "you'll", 'and', 'as', 'hers', 'once', 'up', 'off', "shan't", 'she', 'there', 'while', "he's", 'could', "how's", 'very', 'before', 'ought', 'for', 'had', "she'd", "why's", 'own', 'theirs'}
+wordCountThreshold = 500 
+contentToCodeRatioThreshold = 0.5
+uniqueWordRatioThreshold = 0.1
+linkToParagraphRatioThreshold = 2
 
 
 def scraper(url, resp):
@@ -26,8 +30,13 @@ def extract_next_links(url, resp):
     hyperlinkList = []
 
     if resp.status == 200:
+
         # Parse the page content using beautiful soup
         soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+
+        # Check for low information pages
+        if not checkLowInfo(soup):
+            return hyperlinkList
 
         # Iterate through <a> objects, adding the hyperlink to list
         for link in soup.find_all('a'):
@@ -37,6 +46,35 @@ def extract_next_links(url, resp):
         print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
 
     return hyperlinkList
+
+def checkLowInfo(soup):
+
+    # Check word count
+    totalWords = len(soup.get_text())
+    if totalWords < wordCountThreshold:
+        return False
+    
+    # Check Content to Code Ratio
+    HTMLCSSJSCount = len(soup.find_all(['html', 'head', 'meta', 'link', 'script', 'style']))
+    paragraphCount = len(soup.find_all('p'))
+    linkCount = len(soup.find_all('a'))
+    total_elements = HTMLCSSJSCount + paragraphCount
+
+    if (HTMLCSSJSCount / total_elements) > contentToCodeRatioThreshold:
+        return False
+
+    # Check for low number of unique words
+    uniqueWords = re.findall(r'\b\w+\b', soup.get_text().lower())
+    uniqueWordsCount = len(set(uniqueWords))
+
+    if (uniqueWordsCount / totalWords) < uniqueWordRatioThreshold:
+        return False
+
+    # Check link-to-text ratio
+    if linkCount / paragraphCount > linkToParagraphRatioThreshold:
+        return False
+    
+    return True
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -51,8 +89,11 @@ def is_valid(url):
     
         if parsed.scheme not in set(["http", "https"]):
             return False
+
+        if not checkDuplicate():
+            return False
         
-        return not re.match(
+        return not re.match( # Added checks for query parameters and fragments to help with traps
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
@@ -60,7 +101,7 @@ def is_valid(url):
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)(\?.*|#.*)?$", parsed.path.lower())
 
     except TypeError:
         print ("TypeError for ", parsed)
@@ -86,6 +127,20 @@ def checkDomain(netloc: str) -> bool:
     
     # If netloc does not match any valid domains, return false
     return False
+
+def checkDuplicate(url):
+    # For exact duplicates, use hash
+
+    # For near similar duplicates, use fingerprints
+    # Simple fingerprint: parse the document into words
+    # Group tokens into contiguous n-gams for some n.
+    # Some of the n-grams are selected to represent the document
+    # Use hash function for each n-gram to transform into integers
+    # Use modulus operator on hash values and store those values as the "fingerprint"
+    # Calculate the intersection between this urls fingerprint and other fingerprints
+    # Use designed threshold to compare if two fingerprints are too similar
+
+    return True
 
 def updateTokens(crawler : crawler, resp):
     if resp.status == 200:
