@@ -20,6 +20,7 @@ if __name__ == "__main__":
         urlCount = shelve.open("uniquePages.shelve")
         subDomains = shelve.open("subDomains.shelve")
         longest = shelve.open("longest.shelve")
+        robot = shelve.open("robotTXTs.txt")
     
         generate_report("Number of unique pages ", len(urlCount),f)
 
@@ -31,4 +32,6 @@ if __name__ == "__main__":
 
         sorted_URL_subdomains = dict(sorted(subDomains.items(), key=lambda item: (-item[1], item[0])))
        
+        generate_report("Top subdomains", sorted_URL_subdomains, f)
+        
         generate_report("Top subdomains", sorted_URL_subdomains, f)

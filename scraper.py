@@ -124,31 +124,18 @@ def updateTokens(crawler : crawler, resp):
         print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
 
 
-def tokenize_text(text: bytes) -> list:
-
-    totalTokens = []
-    currentToken = b''
-
-    # Iterate through bytes instead of reading the whole text
-    byte = text.read(1)
-    
-    while byte:
-        # Check if byte is an alphanumeric (English) character
-        if byte.isascii() and (byte.isalnum() or byte.decode() == "'" or byte.decode() == "-"): # Account for apostrophes or dashes 
-            # Ensure token is not case sensitive
-            currentToken += byte.lower()
+def tokenize_text(text):
+    tokens = []
+    current_token = []
+    for char in text:
+        if (char.isascii() and char.isalnum()) or (char == "'" or char == "-"):
+                current_token.append(char)
         else:
-            # Ensure token is not empty
-            if currentToken:
-                totalTokens.append(currentToken.decode()) # Decoding turns bytes into string format for token
-                currentToken = b''
-        byte = text.read(1)
-    
-    # Add any remaining token at the end of for loop
-    if currentToken:
-        totalTokens.append(currentToken.decode())
-    
-    return totalTokens
+            if current_token:
+                tokens.append(''.join(current_token).lower())
+                current_token = []
+
+    return tokens
 
 
 # Computing the word frequencies is also O(N) where N is the ammount of words in the list
@@ -187,3 +174,5 @@ def updateURLCount(crawler : crawler, url):
 
     if noFragmentURL not in crawler.uniquePages:
         crawler.uniquePages[noFragmentURL] = True
+
+    
