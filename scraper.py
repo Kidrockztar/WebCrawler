@@ -71,7 +71,6 @@ def checkLowInfo(soup, url):
         get_logger("CRAWLER").warning(f"low unique words of {uniqueWordsCount / totalWords} on {soup.url}")
         return False
 
-
     # I would think we want a high amount of links?
     # Check link-to-text ratio
     #if linkCount / paragraphCount > linkToParagraphRatioThreshold:
