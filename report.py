@@ -34,4 +34,3 @@ if __name__ == "__main__":
        
         generate_report("Top subdomains", sorted_URL_subdomains, f)
         
-        generate_report("Top subdomains", sorted_URL_subdomains, f)

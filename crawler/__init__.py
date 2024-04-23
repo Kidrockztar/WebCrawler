@@ -18,7 +18,7 @@ class Crawler(object):
         self.uniquePages = shelve.open("uniquePages.shelve") 
         self.tokens = shelve.open("tokens.shelve")
         self.icsSubDomainCounts = shelve.open("subDomains.shelve")
-        self.robotTxt = shelve.open("robotTXTs.txt")
+        self.netlocs = shelve.open("netloc.shelve")
 
     def start_async(self):
         self.workers = [

@@ -2,10 +2,12 @@ from threading import Thread
 
 from inspect import getsource
 from utils.download import download
+from urllib import robotparser
 from utils import get_logger, normalize
 import scraper
 import time
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 
 
 class Worker(Thread):
@@ -27,6 +29,7 @@ class Worker(Thread):
                 break
             
             if not self.checkRobotTxt(tbd_url):
+                self.crawer.log.info(f"Found blackisted site : {tbd_url}")
                 continue
 
             resp = download(tbd_url, self.config, self.logger)
@@ -36,9 +39,31 @@ class Worker(Thread):
             scraped_urls = scraper.scraper(tbd_url, resp)
             
             if(resp.status == 200):
+                newLinks = []
                 ### Code for questions on assignement
                 scraper.updateTokens(self.crawler , resp)
-                scraper.updateURLCount(self.crawler, tbd_url)
+                # Check whether we need robots.txt
+                if scraper.checkUniqueNetloc(self.crawler, tbd_url):
+                    # get netloc
+                    netloc = normalize(urlparse(tbd_url)).netloc
+                    # get sitemap URL
+                    siteMapURL = self.crawler.robotTxt[netloc].site_map()
+                    if siteMapURL:
+                        resp = download(netloc+siteMapURL)
+                        soup = BeautifulSoup(resp.raw_response.content, "lxml")
+                        
+                        sitemap_tags = soup.find_all("sitemap")
+                        newLinks += soup.find_all("url")
+
+                        # loop over any found sitemaps and also add their links
+                        for sitemap in sitemap_tags:
+                            resp = download(netloc+sitemap)
+                            soup = BeautifulSoup(resp.raw_response.content, "lxml")
+                            newLinks += soup.find_all("url")
+                
+                # add new site map links in
+                if newLinks:
+                    scraped_urls += newLinks
                 scraper.updateSubDomains(self.crawler, tbd_url)
                 
             ## END
@@ -50,50 +75,19 @@ class Worker(Thread):
 
     def checkRobotTxt(self, url):
         # get important strings
-        parsed = urlparse(url)
-        normalPath = normalize(parsed.path)
-        normalNetloc = normalize(parsed.netloc)
-
-        # Check if there is an entry for txt
-        if normalNetloc in self.crawler.robotTxt:
-            # iterate over the paths in the list and see if it applies
-            for path in self.crawler.robotTxt[normalNetloc]:
-                if normalPath.startswith(path):
-                    return False
+        netloc = normalize(urlparse(url).netloc)
+        parser = None
+        try:
+            if netloc in self.crawler.robotTxt.keys():
+                parser = self.crawler.robotTxt[netloc]
+                return parser.can_fetch(self.crawler.config.user_agent, url)
             else:
-                return True
+                parser = robotparser.RobotFileParser()
+                parser.set_url(netloc + "/robots.txt")
+                parser.read()
+                self.crawler.robotTxt[netloc] = parser
+                return parser.can_fetch(self.crawler.config.user_agent, url)
+        except Exception as e:
+            return True
 
-        else:
-            # Request robots txt file
-            robotURL = parsed.scheme + parsed.netloc + "/robots.txt"
-            print(robotURL)
-            resp = download(robotURL, self.config, self.logger)
-            if resp:
-                lines = resp.raw_response.content
-                # Set the empty list for appending
-                self.crawler.robotTxt[normalNetloc] = []
-                
-                # get names
-                agent_name = self.crawler.config.user_agent
-                self.crawler.robotTxt
-                applying_flag = False
-                # parse lines
-                for line in lines.split('\n'):
-                    if line.strip():
-                        # Split stuff up 
-                        key, value = line.split(':', 1)
-                        key = key.strip().lower()
-                        # remove spaces
-                        value = value.strip()
-                        # remove wildcards
-                        value = value.strip("*")
-                        if key == "user-agent" and (agent_name in value or value == "*"):
-                            applying_flag = True
-                        if applying_flag:
-                            if key == 'disallow':
-                                self.crawler.robotTxt[normalNetloc].append(normalize(value)) 
-                
-                print(f"recursing with :{url}, {self.crawler.robotTxt[normalNetloc]}")
-                return self.checkRobotTxt(url)
-            else:
-                print("invalid response")
+        

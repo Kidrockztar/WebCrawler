@@ -175,4 +175,23 @@ def updateURLCount(crawler : crawler, url):
     if noFragmentURL not in crawler.uniquePages:
         crawler.uniquePages[noFragmentURL] = True
 
-    
+def parseSiteMap(crawler:crawler, url):
+    parsed = urlparse(url)
+
+    if parsed.netloc in crawler.robotTxt:
+        site_map = crawler.robotTxt[parsed.netloc].site_maps()
+        if site_map:
+            soup = BeautifulSoup(open(site_map), 'xml')
+            links = soup.findAll('url')
+            crawler.logger.info(links)
+            return links
+        else:
+            return None
+
+def checkUniqueNetloc(crawler : crawler, url):
+    parsed = urlparse(url)
+
+    if normalize(parsed.netloc) in crawler.netlocs:
+        return False
+    else:
+        crawler.netlocs[normalize(parsed.netloc)] = True
