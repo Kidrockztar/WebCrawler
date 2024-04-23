@@ -1,7 +1,7 @@
 import os
 import shelve
 
-from threading import Thread, RLock
+from threading import Thread, RLock, Lock
 from queue import Queue, Empty
 
 from utils import get_logger, get_urlhash, normalize
@@ -28,6 +28,9 @@ class Frontier(object):
             os.remove("uniquePages.shelve")
         # Load existing save file, or create one if it does not exist.
         self.save = shelve.open(self.config.save_file)
+        # Set lock for frontier
+        self.frontierLock = Lock()
+
         if restart:
             for url in self.config.seed_urls:
                 self.add_url(url)
@@ -42,13 +45,14 @@ class Frontier(object):
         ''' This function can be overridden for alternate saving techniques. '''
         total_count = len(self.save)
         tbd_count = 0
-        for url, completed in self.save.values():
-            if not completed and is_valid(url):
-                self.to_be_downloaded.append(url)
-                tbd_count += 1
-        self.logger.info(
-            f"Found {tbd_count} urls to be downloaded from {total_count} "
-            f"total urls discovered.")
+        with self.frontierLock:
+            for url, completed in self.save.values():
+                if not completed and is_valid(url):
+                    self.to_be_downloaded.append(url)
+                    tbd_count += 1
+            self.logger.info(
+                f"Found {tbd_count} urls to be downloaded from {total_count} "
+                f"total urls discovered.")
 
     def get_tbd_url(self):
         try:
@@ -60,9 +64,11 @@ class Frontier(object):
         url = normalize(url)
         urlhash = get_urlhash(url)
         if urlhash not in self.save:
-            self.save[urlhash] = (url, False)
-            self.save.sync()
-            self.to_be_downloaded.append(url)
+            # lock the frontier to make sure no double writes
+            with self.frontierLock:
+                self.save[urlhash] = (url, False)
+                self.save.sync()
+                self.to_be_downloaded.append(url)
     
     def mark_url_complete(self, url):
         urlhash = get_urlhash(url)
@@ -70,6 +76,6 @@ class Frontier(object):
             # This should not happen.
             self.logger.error(
                 f"Completed url {url}, but have not seen it before.")
-
-        self.save[urlhash] = (url, True)
-        self.save.sync()
+        with self.frontierLock:
+            self.save[urlhash] = (url, True)
+            self.save.sync()

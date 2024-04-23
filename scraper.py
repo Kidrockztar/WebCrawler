@@ -50,7 +50,7 @@ def checkLowInfo(soup, url):
     # Check word count
     totalWords = len(soup.get_text())
     if totalWords < wordCountThreshold:
-        get_logger("CRAWLER").warning(f"low total words on {soup.url}")
+        get_logger("CRAWLER").warning(f"low total words on {url}")
         return False
     
     # Check Content to Code Ratio
@@ -60,7 +60,7 @@ def checkLowInfo(soup, url):
     total_elements = HTMLCSSJSCount + paragraphCount
 
     if (HTMLCSSJSCount / total_elements) > contentToCodeRatioThreshold:
-        get_logger("CRAWLER").warning(f"high html count of {HTMLCSSJSCount / total_elements} on {soup.url}")
+        get_logger("CRAWLER").warning(f"high html count of {HTMLCSSJSCount / total_elements} on {url}")
         return False
 
     # Check for low number of unique words
@@ -68,7 +68,7 @@ def checkLowInfo(soup, url):
     uniqueWordsCount = len(set(uniqueWords))
 
     if (uniqueWordsCount / totalWords) < uniqueWordRatioThreshold:
-        get_logger("CRAWLER").warning(f"low unique words of {uniqueWordsCount / totalWords} on {soup.url}")
+        get_logger("CRAWLER").warning(f"low unique words of {uniqueWordsCount / totalWords} on {url}")
         return False
 
     # I would think we want a high amount of links?
@@ -99,15 +99,13 @@ def is_valid(url):
         if not checkDuplicate(url):
             return False
         
-        return not re.match( # Added checks for query parameters and fragments to help with traps
-            r"(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-            + r"|epub|dll|cnf|tgz|sha1"
-            + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)(\?.*|#.*)?$", parsed.path.lower())
+        pattern = r"(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv|rm|smil|wmv|swf|wma|zip|rar|gz)"
+
+        compiled_pattern = re.compile(pattern, re.IGNORECASE)
+
+        # Search for the pattern anywhere in the path
+        return not compiled_pattern.search(parsed.path.lower())
+
 
     except TypeError:
         print ("TypeError for ", parsed)
@@ -165,22 +163,26 @@ def updateTokens(crawler : crawler, resp):
         # remove stopwords and punctuation
         tokens = [t for t in text if t not in stopWords]
         
+        # update the longest 
         if(len(tokens) > crawler.longest):
-            crawler.longestFile.clear() 
-            crawler.longestFile[normalize(resp.url)] = len(tokens)
-            crawler.longest = len(tokens)
+            with crawler.longestLock:
+                crawler.longestFile.clear() 
+                crawler.longestFile[normalize(resp.url)] = len(tokens)
+                crawler.longest = len(tokens)
+                crawler.longestFile.sync()
             
 
         # build frequency dict
         tokens = computeWordFrequencies(tokens)
 
-        # update counts
-        for k,v in tokens.items():
-            if k in crawler.tokens:
-                crawler.tokens[k] += v
-            else:
-                crawler.tokens[k] = v
-    
+        with crawler.tokensLock:
+            # update counts
+            for k,v in tokens.items():
+                if k in crawler.tokens:
+                    crawler.tokens[k] += v
+                else:
+                    crawler.tokens[k] = v
+            crawler.tokens.sync()
     else:
         print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
 
@@ -195,7 +197,9 @@ def tokenize_text(text):
             if current_token:
                 tokens.append(''.join(current_token).lower())
                 current_token = []
-
+    # Place token on if it exists
+    if current_token:
+        tokens.append(''.join(current_token).lower())
     return tokens
 
 
@@ -222,25 +226,32 @@ def updateSubDomains(crawler:crawler, url):
         normalURL = normalize(parsedURL.netloc).strip("www.")
 
     if "ics.uci.edu" in normalURL and "ics.uci.edu" != normalURL:
-        if normalURL in crawler.icsSubDomainCounts:
-            crawler.icsSubDomainCounts[normalURL] += 1
-        else:
-            crawler.icsSubDomainCounts[normalURL] = 1
+        # reserve the ics domain lock
+        with crawler.icsSubDomainCountsLock:
+            if normalURL in crawler.icsSubDomainCounts:
+                crawler.icsSubDomainCounts[normalURL] += 1
+            else:
+                crawler.icsSubDomainCounts[normalURL] = 1
 
+            crawler.icsSubDomainCounts.sync()
     
 
 def updateURLCount(crawler : crawler, url):
     parsedURL = urlparse(url)
     noFragmentURL = normalize(parsedURL.scheme+parsedURL.netloc+parsedURL.path)
 
-    if noFragmentURL not in crawler.uniquePages:
-        crawler.uniquePages[noFragmentURL] = True
+    with crawler.uniquePagesLock:
+        if noFragmentURL not in crawler.uniquePages:
+            crawler.uniquePages[noFragmentURL] = True
+            crawler.uniquePages.sync()
 
 
 def checkUniqueNetloc(crawler : crawler, url):
     parsed = urlparse(url)
 
-    if normalize(parsed.netloc) in crawler.netlocs:
-        return False
-    else:
-        crawler.netlocs[normalize(parsed.netloc)] = True
+    with crawler.netlocsLock:
+        if normalize(parsed.netloc) in crawler.netlocs:
+            return False
+        else:
+            crawler.netlocs[normalize(parsed.netloc)] = True
+            crawler.netlocs.sync()
