@@ -7,9 +7,9 @@ from utils import get_logger, get_urlhash, normalize
 
 
 stopWords = {"we'd", 'his', "you're", 'its', "mustn't", "i'd", "you've", 'that', 'nor', 'only', 'both', 'because', 'through', 'from', 'herself', 'same', 'themselves', 'having', 'this', "we're", 'further', 'your', 'which', "that's", 'down', 'been', 'more', "weren't", 'why', 'with', 'some', 'them', 'below', 'their', "couldn't", 'if', 'then', 'in', 'about', 'i', 'of', "wouldn't", "she's", 'all', "i'm", 'than', 'what', 'when', 'against', 'so', 'he', 'did', "hadn't", 'those', "aren't", 'here', 'yours', "it's", 'be', 'until', "when's", 'no', 'an', "don't", 'not', 'were', "doesn't", 'me', 'on', "there's", 'at', 'any', 'out', "i've", 'over', 'have', 'has', 'we', "they've", "wasn't", "we'll", 'yourselves', 'whom', "hasn't", "they'll", 'a', 'to', 'but', "he'd", 'am', 'her', 'above', 'under', 'the', 'after', "they'd", 'doing', "haven't", 'should', 'him', 'is', 'other', "shouldn't", 'how', 'cannot', 'they', "i'll", 'itself', 'myself', 'himself', 'between', 'it', 'would', 'my', "they're", "she'll", 'ours', 'or', 'was', 'where', "won't", "can't", 'too', "here's", "where's", 'again', 'into', 'most', "let's", 'does', 'by', 'being', 'these', 'such', "he'll", "isn't", "didn't", "who's", 'few', "you'd", 'you', 'do', 'each', 'ourselves', "we've", 'yourself', 'who', 'during', 'our', 'are', "what's", "you'll", 'and', 'as', 'hers', 'once', 'up', 'off', "shan't", 'she', 'there', 'while', "he's", 'could', "how's", 'very', 'before', 'ought', 'for', 'had', "she'd", "why's", 'own', 'theirs'}
-wordCountThreshold = 500 
-contentToCodeRatioThreshold = 0.5
-uniqueWordRatioThreshold = 0.1
+wordCountThreshold = 100
+contentToCodeRatioThreshold = 1
+uniqueWordRatioThreshold = 0.05
 linkToParagraphRatioThreshold = 2
 
 
@@ -28,14 +28,13 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     
     hyperlinkList = []
-
     if resp.status == 200:
 
         # Parse the page content using beautiful soup
         soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
         # Check for low information pages
-        if not checkLowInfo(soup):
+        if not checkLowInfo(soup, resp.url):
             return hyperlinkList
 
         # Iterate through <a> objects, adding the hyperlink to list
@@ -47,11 +46,11 @@ def extract_next_links(url, resp):
 
     return hyperlinkList
 
-def checkLowInfo(soup):
-
+def checkLowInfo(soup, url):
     # Check word count
     totalWords = len(soup.get_text())
     if totalWords < wordCountThreshold:
+        get_logger("CRAWLER").warning(f"low total words on {soup.url}")
         return False
     
     # Check Content to Code Ratio
@@ -61,6 +60,7 @@ def checkLowInfo(soup):
     total_elements = HTMLCSSJSCount + paragraphCount
 
     if (HTMLCSSJSCount / total_elements) > contentToCodeRatioThreshold:
+        get_logger("CRAWLER").warning(f"high html count of {HTMLCSSJSCount / total_elements} on {soup.url}")
         return False
 
     # Check for low number of unique words
@@ -68,11 +68,15 @@ def checkLowInfo(soup):
     uniqueWordsCount = len(set(uniqueWords))
 
     if (uniqueWordsCount / totalWords) < uniqueWordRatioThreshold:
+        get_logger("CRAWLER").warning(f"low unique words of {uniqueWordsCount / totalWords} on {soup.url}")
         return False
 
+
+    # I would think we want a high amount of links?
     # Check link-to-text ratio
-    if linkCount / paragraphCount > linkToParagraphRatioThreshold:
-        return False
+    #if linkCount / paragraphCount > linkToParagraphRatioThreshold:
+    #    get_logger("CRAWLER").warning(f"high link to paragraph ratio of {linkCount / paragraphCount} on {soup.url}")
+    #    return False
     
     return True
 
@@ -83,10 +87,13 @@ def is_valid(url):
     try:
        
         parsed = urlparse(url) # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
-        
-        if not checkDomain(parsed.netloc):
+        parsedNetloc = parsed.netloc
+        if isinstance(parsedNetloc, bytes):
+            parsedNetloc = parsed.netloc.decode('utf-8')  
+            
+        if not checkDomain(parsedNetloc):
             return False
-    
+
         if parsed.scheme not in set(["http", "https"]):
             return False
 
@@ -94,7 +101,7 @@ def is_valid(url):
             return False
         
         return not re.match( # Added checks for query parameters and fragments to help with traps
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
+            r"(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
@@ -230,18 +237,6 @@ def updateURLCount(crawler : crawler, url):
     if noFragmentURL not in crawler.uniquePages:
         crawler.uniquePages[noFragmentURL] = True
 
-def parseSiteMap(crawler:crawler, url):
-    parsed = urlparse(url)
-
-    if parsed.netloc in crawler.robotTxt:
-        site_map = crawler.robotTxt[parsed.netloc].site_maps()
-        if site_map:
-            soup = BeautifulSoup(open(site_map), 'xml')
-            links = soup.findAll('url')
-            crawler.logger.info(links)
-            return links
-        else:
-            return None
 
 def checkUniqueNetloc(crawler : crawler, url):
     parsed = urlparse(url)

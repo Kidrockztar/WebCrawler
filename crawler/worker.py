@@ -37,11 +37,11 @@ class Worker(Thread):
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
             scraped_urls = scraper.scraper(tbd_url, resp)
-            
             if(resp.status == 200):
                 newLinks = []
                 ### Code for questions on assignement
                 scraper.updateTokens(self.crawler , resp)
+                scraper.updateSubDomains(self.crawler, tbd_url)
                 # Check whether we need robots.txt
                 if scraper.checkUniqueNetloc(self.crawler, tbd_url):
                     # get netloc
@@ -51,7 +51,7 @@ class Worker(Thread):
                     if siteMapURL:
                         resp = download(netloc+siteMapURL)
                         soup = BeautifulSoup(resp.raw_response.content, "lxml")
-                        
+                        print("here")
                         sitemap_tags = soup.find_all("sitemap")
                         newLinks += soup.find_all("url")
 
@@ -63,8 +63,7 @@ class Worker(Thread):
                 
                 # add new site map links in
                 if newLinks:
-                    scraped_urls += newLinks
-                scraper.updateSubDomains(self.crawler, tbd_url)
+                    scraped_urls += [link for link in newLinks if scraper.is_valid(link)]
                 
             ## END
             for scraped_url in scraped_urls:

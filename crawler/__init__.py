@@ -20,6 +20,15 @@ class Crawler(object):
         self.icsSubDomainCounts = shelve.open("subDomains.shelve")
         self.netlocs = shelve.open("netloc.shelve")
 
+        if restart:
+            print("clearing all shelves")
+            self.longestFile.clear()
+            self.longest = 0
+            self.uniquePages.clear()
+            self.tokens.clear()
+            self.icsSubDomainCounts.clear()
+            self.netlocs.clear()
+
     def start_async(self):
         self.workers = [
             self.worker_factory(worker_id, self.config, self.frontier, self)
