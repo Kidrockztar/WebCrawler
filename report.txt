@@ -1,69 +1,97 @@
 ----- Number of unique pages  -----
-60
+904
 ------------------
 ----- Number of tokens -----
-4139
+21089
 ------------------
 ----- Longest page -----
-('http://www.ics.uci.edu/~seal/publications.html', 3858)
+('http://www.ics.uci.edu/%7Ewscacchi/Papers/KnowledgeWeb', 71833)
 ------------------
 ----- Top 50 tokens -----
-('software', 399)
-('engineering', 221)
-('malek', 150)
-('pdf', 144)
-('research', 142)
-('sam', 136)
-('information', 132)
-('computer', 131)
-('students', 126)
-('s', 119)
-('science', 116)
-('systems', 114)
-('can', 103)
-('work', 102)
-('informatics', 96)
-('professor', 95)
-('design', 91)
-('university', 91)
-('people', 88)
-('also', 87)
-('international', 86)
-('like', 83)
-('says', 82)
-('uci', 82)
-('learning', 81)
-('will', 80)
-('academic', 79)
-('peer', 75)
-('school', 75)
-('technology', 74)
-('irvine', 71)
-('new', 71)
-('data', 70)
-('conference', 69)
-('accessibility', 64)
-('analysis', 64)
-('one', 64)
-('use', 63)
-('statistics', 62)
-('advisor', 60)
-('process', 60)
-('time', 57)
-('bren', 56)
-('social', 56)
-('d', 55)
-('sciences', 55)
-('california', 53)
-('part', 53)
-('donald', 52)
-('issues', 52)
+('design', 6801)
+('software', 5998)
+('students', 4899)
+('game', 4080)
+('s', 4066)
+('systems', 3952)
+('research', 3919)
+('computer', 3901)
+('information', 3741)
+('process', 3379)
+('work', 2902)
+('uci', 2900)
+('programming', 2892)
+('development', 2725)
+('data', 2607)
+('can', 2522)
+('science', 2390)
+('new', 2241)
+('project', 2234)
+('games', 2196)
+('will', 2156)
+('may', 2048)
+('knowledge', 2024)
+('engineering', 1987)
+('analysis', 1978)
+('technology', 1918)
+('topics', 1903)
+('ics', 1883)
+('web', 1874)
+('management', 1815)
+('also', 1733)
+('school', 1730)
+('system', 1719)
+('computing', 1695)
+('studies', 1635)
+('people', 1580)
+('one', 1521)
+('processes', 1492)
+('use', 1491)
+('social', 1447)
+('course', 1404)
+('professor', 1395)
+('informatics', 1378)
+('introduction', 1361)
+('team', 1338)
+('problems', 1332)
+('include', 1328)
+('techniques', 1315)
+('business', 1311)
+('media', 1303)
 ------------------
 ----- Top subdomains -----
-informatics.uci.edu 22
-dgillen.ics.uci.edu 3
-hai.ics.uci.edu 2
-informatics.ics.uci.edu 1
-malek.ics.uci.edu 1
-seal.ics.uci.edu 1
+informatics.uci.edu 363
+ics.ics.uci.edu 64
+isg.ics.uci.edu 58
+transformativeplay.ics.uci.edu 43
+sdcl.ics.uci.edu 41
+informatics.ics.uci.edu 22
+mcs.ics.uci.edu 21
+code.ics.uci.edu 13
+sli.ics.uci.edu 13
+mhcid.ics.uci.edu 11
+earablegames.ics.uci.edu 10
+create.ics.uci.edu 7
+evoke.ics.uci.edu 6
+nalini.ics.uci.edu 6
+mds.ics.uci.edu 4
+fr.ics.uci.edu 2
+hpi.ics.uci.edu 2
+seal.ics.uci.edu 2
+Transformativeplay.ics.uci.edu 1
+accessibility.ics.uci.edu 1
+cert.ics.uci.edu 1
+cwicsocal18.ics.uci.edu 1
+elms.ics.uci.edu 1
+futurehealth.ics.uci.edu 1
+grape.ics.uci.edu 1
+hai.ics.uci.edu 1
+intranet.ics.uci.edu 1
+keys.ics.uci.edu 1
+mdogucu.ics.uci.edu 1
+psearch.ics.uci.edu 1
+redmiles.ics.uci.edu 1
+tad.ics.uci.edu 1
+ugradforms.ics.uci.edu 1
+unite.ics.uci.edu 1
 ------------------

@@ -37,7 +37,7 @@ class Crawler(object):
         self.netlocsLock = threading.Lock()
 
         # place to store the robot .txt parsers
-        self.robotTxt = shelve.open("robotTXTs.txt")
+        self.robotTxt = shelve.open("robotTXTs.shelve")
         self.robotTxtLock = threading.Lock()
 
         # Place to maintain politness between threads

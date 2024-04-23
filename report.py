@@ -20,7 +20,7 @@ if __name__ == "__main__":
         urlCount = shelve.open("uniquePages.shelve")
         subDomains = shelve.open("subDomains.shelve")
         longest = shelve.open("longest.shelve")
-        robot = shelve.open("robotTXTs.txt")
+        robot = shelve.open("robotTXTs.shelve")
     
         generate_report("Number of unique pages ", len(urlCount),f)
 

@@ -60,8 +60,11 @@ def checkLowInfo(soup, url):
     total_elements = HTMLCSSJSCount + paragraphCount
 
     if total_elements == 0:
-        get_logger("CRAWLER").warning(f"0 total_elements count on {url}")
-        return False
+        if ".txt" in url:
+            return True
+        else:
+            get_logger("CRAWLER").warning(f"0 total_elements count on {url}")
+            return False
     if (HTMLCSSJSCount / total_elements) > contentToCodeRatioThreshold:
         get_logger("CRAWLER").warning(f"high html count of {HTMLCSSJSCount / total_elements} on {url}")
         return False
