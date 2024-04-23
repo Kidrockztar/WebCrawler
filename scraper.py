@@ -90,7 +90,7 @@ def is_valid(url):
         if parsed.scheme not in set(["http", "https"]):
             return False
 
-        if not checkDuplicate():
+        if not checkDuplicate(url):
             return False
         
         return not re.match( # Added checks for query parameters and fragments to help with traps
