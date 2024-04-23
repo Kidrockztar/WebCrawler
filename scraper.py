@@ -10,7 +10,7 @@ stopWords = {"we'd", 'his', "you're", 'its', "mustn't", "i'd", "you've", 'that',
 wordCountThreshold = 100
 contentToCodeRatioThreshold = 1
 uniqueWordRatioThreshold = 0.02
-linkToParagraphRatioThreshold = 2
+linkToParagraphRatioThreshold = 50
 
 
 def scraper(url, resp):
@@ -60,6 +60,7 @@ def checkLowInfo(soup, url):
     total_elements = HTMLCSSJSCount + paragraphCount
 
     if total_elements == 0:
+        get_logger("CRAWLER").warning(f"0 total_elements count on {url}")
         return False
     if (HTMLCSSJSCount / total_elements) > contentToCodeRatioThreshold:
         get_logger("CRAWLER").warning(f"high html count of {HTMLCSSJSCount / total_elements} on {url}")
@@ -70,6 +71,7 @@ def checkLowInfo(soup, url):
     uniqueWordsCount = len(set(uniqueWords))
 
     if totalWords == 0:
+        get_logger("CRAWLER").warning(f"0 total world count on {url}")
         return False
     if (uniqueWordsCount / totalWords) < uniqueWordRatioThreshold:
         get_logger("CRAWLER").warning(f"low unique words of {uniqueWordsCount / totalWords} on {url}")
@@ -77,9 +79,12 @@ def checkLowInfo(soup, url):
 
     # I would think we want a high amount of links?
     # Check link-to-text ratio
-    #if linkCount / paragraphCount > linkToParagraphRatioThreshold:
-    #    get_logger("CRAWLER").warning(f"high link to paragraph ratio of {linkCount / paragraphCount} on {soup.url}")
+    #if paragraphCount == 0:
+    #    get_logger("CRAWLER").warning(f"0 paragraph count on {url}")
     #    return False
+    #if linkCount / paragraphCount > linkToParagraphRatioThreshold:
+     #   get_logger("CRAWLER").warning(f"high link to paragraph ratio of {linkCount / paragraphCount} on {url}")
+     #   return False
     
     return True
 
