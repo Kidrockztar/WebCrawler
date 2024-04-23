@@ -8,9 +8,9 @@ from utils import get_logger, get_urlhash, normalize
 
 stopWords = {"we'd", 'his', "you're", 'its', "mustn't", "i'd", "you've", 'that', 'nor', 'only', 'both', 'because', 'through', 'from', 'herself', 'same', 'themselves', 'having', 'this', "we're", 'further', 'your', 'which', "that's", 'down', 'been', 'more', "weren't", 'why', 'with', 'some', 'them', 'below', 'their', "couldn't", 'if', 'then', 'in', 'about', 'i', 'of', "wouldn't", "she's", 'all', "i'm", 'than', 'what', 'when', 'against', 'so', 'he', 'did', "hadn't", 'those', "aren't", 'here', 'yours', "it's", 'be', 'until', "when's", 'no', 'an', "don't", 'not', 'were', "doesn't", 'me', 'on', "there's", 'at', 'any', 'out', "i've", 'over', 'have', 'has', 'we', "they've", "wasn't", "we'll", 'yourselves', 'whom', "hasn't", "they'll", 'a', 'to', 'but', "he'd", 'am', 'her', 'above', 'under', 'the', 'after', "they'd", 'doing', "haven't", 'should', 'him', 'is', 'other', "shouldn't", 'how', 'cannot', 'they', "i'll", 'itself', 'myself', 'himself', 'between', 'it', 'would', 'my', "they're", "she'll", 'ours', 'or', 'was', 'where', "won't", "can't", 'too', "here's", "where's", 'again', 'into', 'most', "let's", 'does', 'by', 'being', 'these', 'such', "he'll", "isn't", "didn't", "who's", 'few', "you'd", 'you', 'do', 'each', 'ourselves', "we've", 'yourself', 'who', 'during', 'our', 'are', "what's", "you'll", 'and', 'as', 'hers', 'once', 'up', 'off', "shan't", 'she', 'there', 'while', "he's", 'could', "how's", 'very', 'before', 'ought', 'for', 'had', "she'd", "why's", 'own', 'theirs'}
 wordCountThreshold = 100
-contentToCodeRatioThreshold = 1
+contentToCodeRatioThreshold = 0.9
 uniqueWordRatioThreshold = 0.02
-linkToParagraphRatioThreshold = 50
+linkToContentRatioThreshold = 10
 
 
 def scraper(url, resp):
@@ -57,7 +57,7 @@ def checkLowInfo(soup, url):
     HTMLCSSJSCount = len(soup.find_all(['html', 'head', 'meta', 'link', 'script', 'style']))
     paragraphCount = len(soup.find_all('p'))
     linkCount = len(soup.find_all('a'))
-    total_elements = HTMLCSSJSCount + paragraphCount
+    total_elements = HTMLCSSJSCount + paragraphCount + linkCount
 
     if total_elements == 0:
         get_logger("CRAWLER").warning(f"0 total_elements count on {url}")
@@ -69,22 +69,19 @@ def checkLowInfo(soup, url):
     # Check for low number of unique words
     uniqueWords = re.findall(r'\b\w+\b', soup.get_text().lower())
     uniqueWordsCount = len(set(uniqueWords))
-
-    if totalWords == 0:
-        get_logger("CRAWLER").warning(f"0 total world count on {url}")
-        return False
-    if (uniqueWordsCount / totalWords) < uniqueWordRatioThreshold:
+    
+    if (uniqueWordsCount / totalWords) < uniqueWordRatioThreshold: # Total words guaranteed to be above 0 due to word count check
         get_logger("CRAWLER").warning(f"low unique words of {uniqueWordsCount / totalWords} on {url}")
         return False
 
-    # I would think we want a high amount of links?
-    # Check link-to-text ratio
-    #if paragraphCount == 0:
+    #I would think we want a high amount of links?
+    #Check link-to-text ratio
+    # if paragraphCount == 0:
     #    get_logger("CRAWLER").warning(f"0 paragraph count on {url}")
     #    return False
-    #if linkCount / paragraphCount > linkToParagraphRatioThreshold:
-     #   get_logger("CRAWLER").warning(f"high link to paragraph ratio of {linkCount / paragraphCount} on {url}")
-     #   return False
+    if linkCount / (total_elements - linkCount) > linkToContentRatioThreshold:
+       get_logger("CRAWLER").warning(f"high link to paragraph ratio of {linkCount / (total_elements - linkCount)} on {url}")
+       return False
     
     return True
 
