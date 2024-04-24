@@ -12,16 +12,14 @@ wordCountThreshold = 100
 contentToCodeRatioThreshold = 0.9
 uniqueWordRatioThreshold = 0.02
 linkToContentRatioThreshold = 20
-hashOfPages = set()
 simHashThreshold = 0.8
-simHashSet = set()
 
 
-def scraper(url, resp):
-    links = extract_next_links(url, resp)
+def scraper(crawler : crawler, url, resp): 
+    links = extract_next_links(crawler, url, resp)
     return [link for link in links if is_valid(link)]
 
-def extract_next_links(url, resp):
+def extract_next_links(crawler, url, resp):
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
     # resp.status: the status code returned by the server. 200 is OK, you got the page. Other numbers mean that there was some kind of problem.
@@ -31,30 +29,31 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     
-    hyperlinkList = set()
+    hyperlinkList = []
     if resp.status == 200:
 
         # Parse the page content using beautiful soup
         soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
         # Check for duplicates/near duplicates
-        if not checkDuplicate(soup, resp):
+        if not checkDuplicate(crawler, soup, resp):
+            print(f"returning after checking hash for {resp.url}")
             return []
 
         # Check for low information pages
-        if not checkLowInfo(soup, resp.url):
+        if not checkLowInfo(crawler, soup, resp.url):
             return []
 
         # Iterate through <a> objects, adding the hyperlink to list
         for link in soup.find_all('a'):
-            hyperlinkList.add(link.get('href'))
+            hyperlinkList.append(link.get('href'))
         
     else:
         print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
 
-    return list(hyperlinkList)
+    return hyperlinkList
 
-def checkLowInfo(soup, url):
+def checkLowInfo(crawler, soup, url):
 
     # Check for non html webpages
     pattern = r".*\.(r|txt|bib)$"
@@ -67,7 +66,7 @@ def checkLowInfo(soup, url):
         finalURL = handleRedirects(url)
         if (finalURL):
             print("Redirected url:", finalURL)
-        get_logger("CRAWLER").warning(f"low total words on {url}")
+        crawler.logger.warning(f"low total words on {url}")
         return False
     
     # Check Content to Code Ratio
@@ -77,11 +76,11 @@ def checkLowInfo(soup, url):
     total_elements = HTMLCSSJSCount + paragraphCount + linkCount
 
     if total_elements == 0:
-        get_logger("CRAWLER").warning(f"0 total_elements count on {url}")
+        crawler.logger.warning(f"0 total_elements count on {url}")
         return False
     
     if (HTMLCSSJSCount / total_elements) > contentToCodeRatioThreshold:
-        get_logger("CRAWLER").warning(f"high html count of {HTMLCSSJSCount / total_elements} on {url}")
+        crawler.logger.warning(f"high html count of {HTMLCSSJSCount / total_elements} on {url}")
         return False
 
     # Check for low number of unique words
@@ -89,18 +88,18 @@ def checkLowInfo(soup, url):
     uniqueWordsCount = len(set(uniqueWords))
     
     if (uniqueWordsCount / totalWords) < uniqueWordRatioThreshold: # Total words guaranteed to be above 0 due to word count check
-        get_logger("CRAWLER").warning(f"low unique words of {uniqueWordsCount / totalWords} on {url}")
+        crawler.logger.warning(f"low unique words of {uniqueWordsCount / totalWords} on {url}")
         return False
 
     #I would think we want a high amount of links?
     #Check link-to-text ratio
     pageWithoutLinks = total_elements - linkCount
     if pageWithoutLinks == 0:
-       get_logger("CRAWLER").warning(f"0 content count on {url}")
+       crawler.logger.warning(f"0 content count on {url}")
        return False
     
     if linkCount / pageWithoutLinks > linkToContentRatioThreshold:
-       get_logger("CRAWLER").warning(f"high link to content ratio of {linkCount / pageWithoutLinks} on {url}")
+       crawler.logger.warning(f"high link to content ratio of {linkCount / pageWithoutLinks} on {url}")
        return False
     
     return True
@@ -165,26 +164,30 @@ def checkDomain(netloc: str) -> bool:
     # If netloc does not match any valid domains, return false
     return False
 
-def checkDuplicate(soup, resp):
+def checkDuplicate(crawler: crawler, soup, resp):
     # For exact duplicates, use hash
     totalText = soup.get_text()
     crcHash = cyclic_redundancy_check(totalText)
 
-    if crcHash in hashOfPages:
-        get_logger("CRAWLER").warning(f"hash: {crcHash} already visited")
-        return False
-    else:
-        hashOfPages.add(crcHash)
-        # Check for near duplicates
+    # Reserve dict for this thread
+    with crawler.hashOfPagesLock:
+        # need to be str so the key lookup works
+        if str(crcHash) in crawler.hashOfPages:
+            crawler.logger.warning(f"hash: {crcHash} already visited")
+            return False
+        else:
+            crawler.hashOfPages[str(crcHash)] = True
 
+    # Check for near duplicates
+    with crawler.simHashSetLock:
         sim_hash = simHash(totalText)
-
-        for sim in simHashSet:
+        for sim in crawler.simHashSet.keys():
+            sim = int(sim)
             if areSimilarSimHashes(sim_hash, sim, simHashThreshold):
-                get_logger("CRAWLER").warning(f"high similarity on {resp.url}")
+                crawler.logger.warning(f"high similarity on {resp.url}")
                 return False
-        
-        simHashSet.add(sim_hash)
+
+        crawler.simHashSet[str(sim_hash)] = True
 
     return True
 
@@ -252,8 +255,8 @@ def areSimilarSimHashes(firstSimHash, secondSimHash, threshold):
     # Calculate the similarity ratio
     similarity = similarBits / 8
 
-    if similarity >= threshold:
-        get_logger("CRAWLER").warning(f"simHash similarity: {similarity} already visited")
+    #if similarity >= threshold:
+    #    get_logger("CRAWLER").warning(f"simHash similarity: {similarity} already visited")
 
     return similarity >= threshold
 

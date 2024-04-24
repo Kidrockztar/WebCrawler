@@ -44,6 +44,13 @@ class Crawler(object):
         self.politeLockDictLock = threading.Lock()
         self.politeLocksDict = {}
 
+        # place to maintain hash information
+        self.hashOfPages = shelve.open("hashOfPages.shelve")
+        self.hashOfPagesLock = threading.Lock()
+
+        self.simHashSet = shelve.open("simHashSet.shelve")
+        self.simHashSetLock = threading.Lock()
+
         # threads being done array
         self.activeArray = []
         for id in range(self.config.threads_count):
@@ -57,6 +64,8 @@ class Crawler(object):
             self.tokens.clear()
             self.icsSubDomainCounts.clear()
             self.netlocs.clear()
+            self.hashOfPages.clear()
+            self.simHashSet.clear()
 
     def start_async(self):
         self.workers = [

@@ -3,7 +3,7 @@ from threading import Thread, Lock
 from inspect import getsource
 from utils.download import download
 from urllib import robotparser
-from utils import get_logger, normalize
+from utils import get_logger, normalize, get_urlhash
 import scraper
 import time
 from urllib.parse import urlparse
@@ -61,7 +61,7 @@ class Worker(Thread):
                 # Wait for keeping lock locked while not polite
                 time.sleep(self.config.time_delay)
             
-            scraped_urls = scraper.scraper(tbd_url, resp)
+            scraped_urls = scraper.scraper(self.crawler, tbd_url, resp)
             if(resp.status == 200):
                 
                 newLinks = set()
@@ -94,10 +94,10 @@ class Worker(Thread):
                     if newLinks:
                         scraped_urls += [link for link in newLinks if scraper.is_valid(link)]
                 
-            ## END
-            for scraped_url in scraped_urls:
-                self.frontier.add_url(scraped_url)
-            self.frontier.mark_url_complete(tbd_url)
+                ## END
+                for scraped_url in scraped_urls:
+                    self.frontier.add_url(scraped_url)
+                self.frontier.mark_url_complete(tbd_url)
 
                 
 

@@ -71,6 +71,7 @@ class Frontier(object):
                 self.to_be_downloaded.append(url)
     
     def mark_url_complete(self, url):
+        url = normalize(url)
         urlhash = get_urlhash(url)
         if urlhash not in self.save:
             # This should not happen.
