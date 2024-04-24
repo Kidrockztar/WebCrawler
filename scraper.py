@@ -2,6 +2,7 @@ import re
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import crawler
+import sys
 from collections import Counter
 from utils import get_logger, get_urlhash, normalize
 from utils.download import download
@@ -47,7 +48,15 @@ def extract_next_links(crawler, url, resp):
         # Iterate through <a> objects, adding the hyperlink to list
         for link in soup.find_all('a'):
             hyperlinkList.append(link.get('href'))
-        
+            
+    elif (resp.status ==301 or resp.status == 302) or (url != resp.url): # Check for redirects
+
+        # If redirect link, then find its final URL, and recall scraper function
+        crawler.logger.warning(f"redirect link detected for: {url}")
+        finalURL = handleRedirects(crawler, url)
+
+        if (finalURL):
+            scraper(crawler, url, finalURL)
     else:
         print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
 
@@ -59,13 +68,16 @@ def checkLowInfo(crawler, soup, url):
     pattern = r".*\.(r|txt|bib)$"
     if re.match(pattern, url):
         return True
+    
+    # Filter out super large webpages
+    if (sys.getsizeof(soup.get_text())  > 1024 * 1024): # Check if page is larger than 1 mb
+        crawler.logger.warning(f"too large of a webpage size for url: {url}")
+        return False
 
-    # Check word count
+    # Check for low word count on page
     totalWords = len(soup.get_text())
+
     if totalWords < wordCountThreshold:
-        finalURL = handleRedirects(crawler, url)
-        if (finalURL):
-            print("Redirected url:", finalURL)
         crawler.logger.warning(f"low total words on {url}")
         return False
     
@@ -75,7 +87,7 @@ def checkLowInfo(crawler, soup, url):
     linkCount = len(soup.find_all('a'))
     total_elements = HTMLCSSJSCount + paragraphCount + linkCount
 
-    if total_elements == 0:
+    if total_elements == 0: # Ensure no divide by 0 errors
         crawler.logger.warning(f"0 total_elements count on {url}")
         return False
     
@@ -91,10 +103,10 @@ def checkLowInfo(crawler, soup, url):
         crawler.logger.warning(f"low unique words of {uniqueWordsCount / totalWords} on {url}")
         return False
 
-    #I would think we want a high amount of links?
     #Check link-to-text ratio
     pageWithoutLinks = total_elements - linkCount
-    if pageWithoutLinks == 0:
+
+    if pageWithoutLinks == 0: # Ensure no divide by 0 errors
        crawler.logger.warning(f"0 content count on {url}")
        return False
     
@@ -107,8 +119,7 @@ def checkLowInfo(crawler, soup, url):
 def handleRedirects(crawler, url):
     try:
         resp = download(url, crawler.frontier.config)
-        for response in resp.history:
-            print("REPONSE HISTORY: ", response.status_code, response.url)
+        return resp.url
 
     except Exception as e:
         print(f"Error occurred while fetching final URL: {e}")
@@ -173,7 +184,7 @@ def checkDuplicate(crawler: crawler, soup, resp):
     with crawler.hashOfPagesLock:
         # need to be str so the key lookup works
         if str(crcHash) in crawler.hashOfPages:
-            crawler.logger.warning(f"hash: {crcHash} already visited")
+            #crawler.logger.warning(f"hash: {crcHash}  for url {resp.url} already visited")
             return False
         else:
             crawler.hashOfPages[str(crcHash)] = True
@@ -184,7 +195,7 @@ def checkDuplicate(crawler: crawler, soup, resp):
         for sim in crawler.simHashSet.keys():
             sim = int(sim)
             if areSimilarSimHashes(sim_hash, sim, simHashThreshold):
-                crawler.logger.warning(f"high similarity on {resp.url}")
+                #crawler.logger.warning(f"high similarity on {resp.url}")
                 return False
 
         crawler.simHashSet[str(sim_hash)] = True
