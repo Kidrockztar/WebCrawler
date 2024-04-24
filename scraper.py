@@ -63,7 +63,7 @@ def checkLowInfo(crawler, soup, url):
     # Check word count
     totalWords = len(soup.get_text())
     if totalWords < wordCountThreshold:
-        finalURL = handleRedirects(url)
+        finalURL = handleRedirects(crawler, url)
         if (finalURL):
             print("Redirected url:", finalURL)
         crawler.logger.warning(f"low total words on {url}")
@@ -104,9 +104,9 @@ def checkLowInfo(crawler, soup, url):
     
     return True
 
-def handleRedirects(url):
+def handleRedirects(crawler, url):
     try:
-        resp = download(url)
+        resp = download(url, crawler.frontier.config)
         for response in resp.history:
             print("REPONSE HISTORY: ", response.status_code, response.url)
 
@@ -369,3 +369,4 @@ def checkUniqueNetloc(crawler : crawler, url):
         else:
             crawler.netlocs[normalize(parsed.netloc)] = True
             crawler.netlocs.sync()
+            return True

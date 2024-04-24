@@ -33,4 +33,6 @@ if __name__ == "__main__":
         sorted_URL_subdomains = dict(sorted(subDomains.items(), key=lambda item: (-item[1], item[0])))
        
         generate_report("Top subdomains", sorted_URL_subdomains, f)
+
+        generate_report("Lenght of robotTXTs", len(robot), f)
         

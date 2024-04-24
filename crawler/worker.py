@@ -9,7 +9,6 @@ import time
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
-
 class Worker(Thread):
     def __init__(self, worker_id, config, frontier, crawler):
         self.logger = get_logger(f"Worker-{worker_id}", "Worker")
@@ -51,7 +50,7 @@ class Worker(Thread):
             with self.crawler.politeLocksDict[parsed.hostname]:
                 
                 if not self.checkRobotTxt(tbd_url):
-                    self.crawer.log.info(f"Found blackisted site : {tbd_url}")
+                    self.crawler.logger.info(f"Found blackisted site : {tbd_url}")
                     continue
 
                 resp = download(tbd_url, self.config, self.logger)
@@ -64,7 +63,6 @@ class Worker(Thread):
             scraped_urls = scraper.scraper(self.crawler, tbd_url, resp)
             if(resp.status == 200):
                 
-                newLinks = set()
                 ### Code for questions on assignement
                 scraper.updateTokens(self.crawler , resp)
                 scraper.updateSubDomains(self.crawler, tbd_url)
@@ -72,40 +70,68 @@ class Worker(Thread):
                 
                 # Check whether we need robots.txt
                 if scraper.checkUniqueNetloc(self.crawler, tbd_url):
+                    self.crawler.logger.info("Getting robot txt")
                     # get netloc
-                    netloc = normalize(urlparse(tbd_url)).netloc
-                    # get sitemap URL
-                    # reserve the robot txt lock in case somebody tries to add the parser after
-                    if netloc in self.crawler.robotTxt:
-                        siteMapURL = self.crawler.robotTxt[netloc].site_map()
-                        if siteMapURL:
-                            resp = download(netloc+siteMapURL)
-                            soup = BeautifulSoup(resp.raw_response.content, "lxml")
-                            sitemap_tags = soup.find_all("sitemap")
-                            newLinks += soup.find_all("url")
-
-                            # loop over any found sitemaps and also add their links
-                            for sitemap in sitemap_tags:
-                                resp = download(netloc+sitemap)
-                                soup = BeautifulSoup(resp.raw_response.content, "lxml")
-                                newLinks += soup.find_all("url")
+                    netloc = normalize(parsed.netloc)
+                    # get robots.txt URL
+                    robots_url = parsed.scheme + "://" + netloc + "/robots.txt"
+                    self.crawler.logger.info("Parsing robots.txt")
+                    resp = download(robots_url, self.frontier.config)
                     
-                    # add new site map links in
-                    if newLinks:
-                        scraped_urls += [link for link in newLinks if scraper.is_valid(link)]
-                
+                    # Check if the response is successful
+                    if resp.status == 200:
+                        # Parse robots.txt content
+                        robots_content = resp.raw_response.content.decode('utf-8')
+                        sitemap_urls = []
+                        for line in robots_content.split('\n'):
+                            if line.startswith("Sitemap:"):
+                                sitemap_urls.append(line.split(":", 1)[1].strip())
+
+                        # Function to recursively parse sitemaps
+                        def parse_sitemap(sitemap_url):
+                            sitemap_resp = download(sitemap_url, self.frontier.config)
+                            sitemap_soup = BeautifulSoup(sitemap_resp.raw_response.content, "xml")
+                            sitemap_links = sitemap_soup.find_all("url")
+                            for link in sitemap_links:
+                                if link:
+                                    # Get the location within the url tags
+                                    actualURL = link.find("loc").text
+                                    print(f"appending {actualURL}")
+                                    scraped_urls.append(actualURL)
+
+                            nested_sitemaps = sitemap_soup.find_all("sitemap")
+                            for nested_sitemap in nested_sitemaps:
+                                nested_sitemap_url = nested_sitemap.find("loc").text
+                                parse_sitemap(nested_sitemap_url)
+
+                        # Parse each sitemap recursively
+                        self.crawler.logger.info("Parsing sitemaps")
+                        for sitemap_url in sitemap_urls:
+                            parse_sitemap(sitemap_url)
+                                
                 ## END
+                # Remove none types
+                scraped_urls = [link for link in scraped_urls if link]
+
+                # add to be searched
                 for scraped_url in scraped_urls:
                     self.frontier.add_url(scraped_url)
                 self.frontier.mark_url_complete(tbd_url)
 
-                
-
 
     def checkRobotTxt(self, url):
         # get important strings
-        netloc = normalize(urlparse(url).netloc)
-        parser = None
+        parsed = urlparse(url)
+        parsedNetloc = parsed.netloc
+        parsedScheme = parsed.scheme
+
+        # Sometimes netloc can be in bytes, ifso, decode to string
+        if isinstance(parsedNetloc, bytes):
+            parsedNetloc = netloc.decode('utf-8')  
+        if isinstance(parsedScheme, bytes):
+            parsedScheme = parsedScheme.decode('utf-8')  
+        
+        netloc = normalize(parsedNetloc.strip("www."))
 
         with self.crawler.robotTxtLock:
             try:
@@ -114,12 +140,13 @@ class Worker(Thread):
                     return parser.can_fetch(self.crawler.config.user_agent, url)
                 else:
                     parser = robotparser.RobotFileParser()
-                    parser.set_url(netloc + "/robots.txt")
+                    parser.set_url(parsedScheme + "://" + netloc + "/robots.txt")
                     parser.read()
                     self.crawler.robotTxt[netloc] = parser
                     return parser.can_fetch(self.crawler.config.user_agent, url)
             # if something wennt wrong we can assume that the robot txt says we are good
             except Exception as e:
+                self.crawler.logger.info(f"{e} on {netloc}")
                 return True
 
         

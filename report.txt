@@ -1,12 +1,69 @@
 ----- Number of unique pages  -----
-0
+44
 ------------------
 ----- Number of tokens -----
-0
+2606
 ------------------
 ----- Longest page -----
+('https://www.ics.uci.edu/community/news/view_news?id=2135', 1644)
 ------------------
 ----- Top 50 tokens -----
+('data', 197)
+('statistics', 195)
+('gillen', 129)
+('science', 120)
+('will', 107)
+('uci', 98)
+('students', 97)
+('s', 96)
+('research', 90)
+('program', 79)
+('biostatistics', 74)
+('university', 73)
+('clinical', 69)
+('department', 67)
+('trials', 61)
+('irvine', 59)
+('institute', 54)
+('school', 54)
+('2021', 52)
+('computer', 52)
+('ics', 51)
+('statistical', 49)
+('information', 47)
+('disease', 45)
+('dl', 45)
+('professor', 45)
+('summer', 43)
+('design', 42)
+('2022', 41)
+('10', 40)
+('alzheimer', 40)
+('biomedical', 40)
+('congratulations', 40)
+('graduate', 40)
+('methods', 39)
+('sciences', 38)
+('abstract', 37)
+('also', 37)
+('analysis', 36)
+('health', 36)
+('models', 35)
+('bren', 34)
+('daniel', 34)
+('says', 34)
+('undergraduate', 34)
+('learning', 33)
+('work', 32)
+('applications', 31)
+('california', 31)
+('d', 31)
 ------------------
 ----- Top subdomains -----
+dgillen.ics.uci.edu 23
+mdogucu.ics.uci.edu 1
+statconsulting.ics.uci.edu 1
+------------------
+----- Lenght of robotTXTs -----
+6
 ------------------
