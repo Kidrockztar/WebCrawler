@@ -2,15 +2,19 @@ import re
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 import crawler
-import shelve
+from collections import Counter
 from utils import get_logger, get_urlhash, normalize
+from utils.download import download
 
 
 stopWords = {"we'd", 'his', "you're", 'its', "mustn't", "i'd", "you've", 'that', 'nor', 'only', 'both', 'because', 'through', 'from', 'herself', 'same', 'themselves', 'having', 'this', "we're", 'further', 'your', 'which', "that's", 'down', 'been', 'more', "weren't", 'why', 'with', 'some', 'them', 'below', 'their', "couldn't", 'if', 'then', 'in', 'about', 'i', 'of', "wouldn't", "she's", 'all', "i'm", 'than', 'what', 'when', 'against', 'so', 'he', 'did', "hadn't", 'those', "aren't", 'here', 'yours', "it's", 'be', 'until', "when's", 'no', 'an', "don't", 'not', 'were', "doesn't", 'me', 'on', "there's", 'at', 'any', 'out', "i've", 'over', 'have', 'has', 'we', "they've", "wasn't", "we'll", 'yourselves', 'whom', "hasn't", "they'll", 'a', 'to', 'but', "he'd", 'am', 'her', 'above', 'under', 'the', 'after', "they'd", 'doing', "haven't", 'should', 'him', 'is', 'other', "shouldn't", 'how', 'cannot', 'they', "i'll", 'itself', 'myself', 'himself', 'between', 'it', 'would', 'my', "they're", "she'll", 'ours', 'or', 'was', 'where', "won't", "can't", 'too', "here's", "where's", 'again', 'into', 'most', "let's", 'does', 'by', 'being', 'these', 'such', "he'll", "isn't", "didn't", "who's", 'few', "you'd", 'you', 'do', 'each', 'ourselves', "we've", 'yourself', 'who', 'during', 'our', 'are', "what's", "you'll", 'and', 'as', 'hers', 'once', 'up', 'off', "shan't", 'she', 'there', 'while', "he's", 'could', "how's", 'very', 'before', 'ought', 'for', 'had', "she'd", "why's", 'own', 'theirs'}
 wordCountThreshold = 100
 contentToCodeRatioThreshold = 0.9
 uniqueWordRatioThreshold = 0.02
-linkToContentRatioThreshold = 10
+linkToContentRatioThreshold = 20
+hashOfPages = set()
+simHashThreshold = 0.8
+simHashSet = set()
 
 
 def scraper(url, resp):
@@ -27,29 +31,42 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     
-    hyperlinkList = []
+    hyperlinkList = set()
     if resp.status == 200:
 
         # Parse the page content using beautiful soup
         soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
+        # Check for duplicates/near duplicates
+        if not checkDuplicate(soup, resp):
+            return []
+
         # Check for low information pages
         if not checkLowInfo(soup, resp.url):
-            return hyperlinkList
+            return []
 
         # Iterate through <a> objects, adding the hyperlink to list
         for link in soup.find_all('a'):
-            hyperlinkList.append(link.get('href'))
+            hyperlinkList.add(link.get('href'))
         
     else:
         print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
 
-    return hyperlinkList
+    return list(hyperlinkList)
 
 def checkLowInfo(soup, url):
+
+    # Check for non html webpages
+    pattern = r".*\.(r|txt)$"
+    if re.match(pattern, url):
+        return True
+
     # Check word count
     totalWords = len(soup.get_text())
     if totalWords < wordCountThreshold:
+        finalURL = handleRedirects(url)
+        if (finalURL):
+            print("Redirected url:", finalURL)
         get_logger("CRAWLER").warning(f"low total words on {url}")
         return False
     
@@ -60,11 +77,9 @@ def checkLowInfo(soup, url):
     total_elements = HTMLCSSJSCount + paragraphCount + linkCount
 
     if total_elements == 0:
-        if ".txt" in url:
-            return True
-        else:
-            get_logger("CRAWLER").warning(f"0 total_elements count on {url}")
-            return False
+        get_logger("CRAWLER").warning(f"0 total_elements count on {url}")
+        return False
+    
     if (HTMLCSSJSCount / total_elements) > contentToCodeRatioThreshold:
         get_logger("CRAWLER").warning(f"high html count of {HTMLCSSJSCount / total_elements} on {url}")
         return False
@@ -79,14 +94,26 @@ def checkLowInfo(soup, url):
 
     #I would think we want a high amount of links?
     #Check link-to-text ratio
-    # if paragraphCount == 0:
-    #    get_logger("CRAWLER").warning(f"0 paragraph count on {url}")
-    #    return False
-    if linkCount / (total_elements - linkCount) > linkToContentRatioThreshold:
-       get_logger("CRAWLER").warning(f"high link to paragraph ratio of {linkCount / (total_elements - linkCount)} on {url}")
+    pageWithoutLinks = total_elements - linkCount
+    if pageWithoutLinks == 0:
+       get_logger("CRAWLER").warning(f"0 content count on {url}")
+       return False
+    
+    if linkCount / pageWithoutLinks > linkToContentRatioThreshold:
+       get_logger("CRAWLER").warning(f"high link to content ratio of {linkCount / pageWithoutLinks} on {url}")
        return False
     
     return True
+
+def handleRedirects(url):
+    try:
+        resp = download(url)
+        for response in resp.history:
+            print("REPONSE HISTORY: ", response.status_code, response.url)
+
+    except Exception as e:
+        print(f"Error occurred while fetching final URL: {e}")
+        return None
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -103,9 +130,6 @@ def is_valid(url):
             return False
 
         if parsed.scheme not in set(["http", "https"]):
-            return False
-
-        if not checkDuplicate(url):
             return False
         
         pattern = r"(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv|rm|smil|wmv|swf|wma|zip|rar|gz)"
@@ -141,19 +165,97 @@ def checkDomain(netloc: str) -> bool:
     # If netloc does not match any valid domains, return false
     return False
 
-def checkDuplicate(url):
+def checkDuplicate(soup, resp):
     # For exact duplicates, use hash
+    totalText = soup.get_text()
+    crcHash = cyclic_redundancy_check(totalText)
 
-    # For near similar duplicates, use fingerprints
-    # Simple fingerprint: parse the document into words
-    # Group tokens into contiguous n-gams for some n.
-    # Some of the n-grams are selected to represent the document
-    # Use hash function for each n-gram to transform into integers
-    # Use modulus operator on hash values and store those values as the "fingerprint"
-    # Calculate the intersection between this urls fingerprint and other fingerprints
-    # Use designed threshold to compare if two fingerprints are too similar
+    if crcHash in hashOfPages:
+        get_logger("CRAWLER").warning(f"hash: {crcHash} already visited")
+        return False
+    else:
+        hashOfPages.add(crcHash)
+        # Check for near duplicates
+
+        sim_hash = simHash(totalText)
+
+        for sim in simHashSet:
+            if areSimilarSimHashes(sim_hash, sim, simHashThreshold):
+                get_logger("CRAWLER").warning(f"high similarity on {resp.url}")
+                return False
+        
+        simHashSet.add(sim_hash)
 
     return True
+
+def cyclic_redundancy_check(pageData):
+    
+    crcHash = 0xFFFF
+
+    # Convert page data into bytes and iterate
+    for byte in pageData.encode():
+
+        crcHash ^= byte # bitwise XOR
+
+        for _ in range(8): # 8 bits in a byte
+            if crcHash & 0x0001: # Check LSB 
+                crcHash = (crcHash >> 1) ^ 0xA001 # Polynomial divison process
+            else:
+                crcHash >>= 1 # Shift right by 1 bit to discard LSB
+
+    # Return compliment of hash
+    return crcHash ^ 0xFFFF
+
+def simHash(pageData):
+    # Seperate into words with weights
+    weightedWords = Counter(tokenize_text(pageData))
+
+    # Get 8-bit hash values for every unique word
+    hashValues = {word: bit_hash(word) for word in weightedWords}
+
+    # Calculate the Vector V by summing weights
+    simhash_value = [0] * 8
+
+    for word, count in weightedWords.items():
+        wordHash = hashValues[word]
+
+        for i in range(8):
+            # Offset hash digit by index of range, and multiply by 1 to get LSB
+            bit = (wordHash >> i) & 1
+            simhash_value[i] += (1 if bit else -1) * count
+    
+    # Convert into fingerprint
+    simhash_fingerprint = 0
+    for i in range(8):
+        if simhash_value[i] > 0:
+            simhash_fingerprint |= 1 << i
+    
+    return simhash_fingerprint
+
+def bit_hash(word):
+
+    # Function to generate an 8 bit hash for a word
+    hash = 0
+
+    for character in word:
+        # Add ASCII value to total hash
+        hash += ord(character)
+    
+    # Ensure hash value is 8 bits
+    return hash % 256
+
+def areSimilarSimHashes(firstSimHash, secondSimHash, threshold):
+    # Return true if two hashes are similar, else false
+
+    # Get number of different bits by XOR the two hashes, and count the occurances of 0 (similarities)
+    similarBits = bin(firstSimHash ^ secondSimHash).count('0')
+    # Calculate the similarity ratio
+    similarity = similarBits / 8
+
+    if similarity >= threshold:
+        get_logger("CRAWLER").warning(f"simHash similarity: {similarity} already visited")
+
+    return similarity >= threshold
 
 def updateTokens(crawler : crawler, resp):
     if resp.status == 200:

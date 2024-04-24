@@ -64,7 +64,7 @@ class Worker(Thread):
             scraped_urls = scraper.scraper(tbd_url, resp)
             if(resp.status == 200):
                 
-                newLinks = []
+                newLinks = set()
                 ### Code for questions on assignement
                 scraper.updateTokens(self.crawler , resp)
                 scraper.updateSubDomains(self.crawler, tbd_url)
