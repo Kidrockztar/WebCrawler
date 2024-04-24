@@ -57,7 +57,7 @@ def extract_next_links(url, resp):
 def checkLowInfo(soup, url):
 
     # Check for non html webpages
-    pattern = r".*\.(r|txt)$"
+    pattern = r".*\.(r|txt|bib)$"
     if re.match(pattern, url):
         return True
 
