@@ -1,69 +1,113 @@
 ----- Number of unique pages  -----
-44
+3664
 ------------------
 ----- Number of tokens -----
-2606
+36939
 ------------------
 ----- Longest page -----
-('https://www.ics.uci.edu/community/news/view_news?id=2135', 1644)
+('http://futurehealth.ics.uci.edu', 409)
 ------------------
 ----- Top 50 tokens -----
-('data', 197)
-('statistics', 195)
-('gillen', 129)
-('science', 120)
-('will', 107)
-('uci', 98)
-('students', 97)
-('s', 96)
-('research', 90)
-('program', 79)
-('biostatistics', 74)
-('university', 73)
-('clinical', 69)
-('department', 67)
-('trials', 61)
-('irvine', 59)
-('institute', 54)
-('school', 54)
-('2021', 52)
-('computer', 52)
-('ics', 51)
-('statistical', 49)
-('information', 47)
-('disease', 45)
-('dl', 45)
-('professor', 45)
-('summer', 43)
-('design', 42)
-('2022', 41)
-('10', 40)
-('alzheimer', 40)
-('biomedical', 40)
-('congratulations', 40)
-('graduate', 40)
-('methods', 39)
-('sciences', 38)
-('abstract', 37)
-('also', 37)
-('analysis', 36)
-('health', 36)
-('models', 35)
-('bren', 34)
-('daniel', 34)
-('says', 34)
-('undergraduate', 34)
-('learning', 33)
-('work', 32)
-('applications', 31)
-('california', 31)
-('d', 31)
+('will', 7684)
+('s', 7510)
+('computer', 6205)
+('data', 5272)
+('students', 5040)
+('research', 5012)
+('design', 4856)
+('information', 4754)
+('can', 4691)
+('uci', 4446)
+('science', 4395)
+('systems', 3966)
+('software', 3719)
+('one', 3467)
+('people', 3268)
+('email', 3252)
+('new', 3176)
+('also', 3136)
+('work', 3023)
+('time', 2851)
+('technology', 2757)
+('may', 2711)
+('university', 2666)
+('learning', 2475)
+('ics', 2450)
+('game', 2414)
+('events', 2409)
+('many', 2391)
+('use', 2378)
+('project', 2234)
+('school', 2195)
+('using', 2166)
+('professor', 2161)
+('programming', 2138)
+('t', 2059)
+('social', 1992)
+('like', 1935)
+('engineering', 1932)
+('analysis', 1916)
+('website', 1911)
+('name', 1875)
+('first', 1871)
+('required', 1856)
+('address', 1836)
+('development', 1814)
+('fields', 1812)
+('now', 1812)
+('published', 1800)
+('d', 1769)
+('computing', 1744)
 ------------------
 ----- Top subdomains -----
-dgillen.ics.uci.edu 23
-mdogucu.ics.uci.edu 1
-statconsulting.ics.uci.edu 1
+ngs.ics.uci.edu 1655
+ics.ics.uci.edu 718
+isg.ics.uci.edu 220
+cml.ics.uci.edu 133
+informatics.uci.edu 128
+sdcl.ics.uci.edu 123
+transformativeplay.ics.uci.edu 73
+economics.uci.edu 65
+grape.ics.uci.edu 53
+mswe.ics.uci.edu 28
+cradl.ics.uci.edu 27
+plrg.ics.uci.edu 24
+code.ics.uci.edu 22
+create.ics.uci.edu 21
+jgarcia.ics.uci.edu 20
+mcs.ics.uci.edu 20
+iasl.ics.uci.edu 19
+chenli.ics.uci.edu 16
+luci.ics.uci.edu 15
+nalini.ics.uci.edu 14
+cwicsocal18.ics.uci.edu 12
+edgelab.ics.uci.edu 11
+flamingo.ics.uci.edu 9
+hpi.ics.uci.edu 8
+asterix.ics.uci.edu 6
+mhcid.ics.uci.edu 6
+seal.ics.uci.edu 5
+studentcouncil.ics.uci.edu 3
+fr.ics.uci.edu 2
+futurehealth.ics.uci.edu 2
+graphics.ics.uci.edu 2
+ipubmed.ics.uci.edu 2
+tippersweb.ics.uci.edu 2
+vision.ics.uci.edu 2
+Transformativeplay.ics.uci.edu 1
+accessibility.ics.uci.edu 1
+aiclub.ics.uci.edu 1
+archive.ics.uci.edu 1
+cert.ics.uci.edu 1
+evoke.ics.uci.edu 1
+hack.ics.uci.edu 1
+hobbes.ics.uci.edu 1
+mds.ics.uci.edu 1
+psearch.ics.uci.edu 1
+redmiles.ics.uci.edu 1
+tastier.ics.uci.edu 1
+tutors.ics.uci.edu 1
 ------------------
 ----- Lenght of robotTXTs -----
-6
+62
 ------------------

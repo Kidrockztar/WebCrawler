@@ -279,6 +279,7 @@ def updateTokens(crawler : crawler, resp):
         
         # update the longest 
         if(len(tokens) > crawler.longest):
+            crawler.logger.info(f"Updating longest with {len(tokens)} and url : {resp.url}")
             with crawler.longestLock:
                 crawler.longestFile.clear() 
                 crawler.longestFile[normalize(resp.url)] = len(tokens)

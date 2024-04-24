@@ -9,6 +9,7 @@ import time
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
+
 class Worker(Thread):
     def __init__(self, worker_id, config, frontier, crawler):
         self.logger = get_logger(f"Worker-{worker_id}", "Worker")

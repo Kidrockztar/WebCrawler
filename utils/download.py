@@ -3,8 +3,13 @@ import cbor
 import time
 
 from utils.response import Response
+import ssl 
+
 
 def download(url, config, logger=None):
+    # need a check for one of the xml files doesn't have a valid certificate
+    # possible security risk but >:)
+    ssl._create_default_https_context = ssl._create_unverified_context
     host, port = config.cache_server
     resp = requests.get(
         f"http://{host}:{port}/",
