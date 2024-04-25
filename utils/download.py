@@ -13,7 +13,7 @@ def download(url, config, logger=None):
     host, port = config.cache_server
     resp = requests.get(
         f"http://{host}:{port}/",
-        params=[("q", f"{url}"), ("u", f"{config.user_agent}")])
+        params=[("q", f"{url}"), ("u", f"{config.user_agent}")], allow_redirects=True)
     try:
         if resp and resp.content:
             return Response(cbor.loads(resp.content))
