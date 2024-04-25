@@ -25,25 +25,27 @@ class Worker(Thread):
     def run(self):
         while True:
             tbd_url = self.frontier.get_tbd_url()
-            #
+            # Check if all of the threads are inactive
+            # if they are then stop crawling
             if all(not x for x in self.crawler.activeArray):
                 self.logger.info("Frontier is empty. Stopping Crawler.")
                 break
 
+            # set thread status in array
             if not tbd_url:
                 self.crawler.activeArray[self.workerId] = False
                 continue
             else:
                  self.crawler.activeArray[self.workerId] = True
 
-            # Check whether we are still being polite
-            #self.politeLockDictLock = threading.lock()
-            #self.politeLocksDict = {}
-
+            # See if it is a new url we are checking
+            scraper.updateURLCount(self.crawler, tbd_url)
             # Check if there is a lock already existing in the dict for this hostname
             parsed = urlparse(tbd_url)
+
             # Lock editing rights to the dict
             with self.crawler.politeLockDictLock:
+                # add new lock if hostname is new
                 if not parsed.hostname in self.crawler.politeLocksDict:
                     self.crawler.politeLocksDict[parsed.hostname] = Lock()
             
@@ -67,8 +69,6 @@ class Worker(Thread):
                 ### Code for questions on assignement
                 scraper.updateTokens(self.crawler , resp)
                 scraper.updateSubDomains(self.crawler, tbd_url)
-                scraper.updateURLCount(self.crawler, tbd_url)
-                
                 # Check whether we need robots.txt
                 if scraper.checkUniqueNetloc(self.crawler, tbd_url):
                     self.crawler.logger.info("Getting robot txt")

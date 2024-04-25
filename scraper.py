@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 import crawler
 from collections import Counter
@@ -46,7 +46,10 @@ def extract_next_links(crawler, url, resp):
 
         # Iterate through <a> objects, adding the hyperlink to list
         for link in soup.find_all('a'):
-            hyperlinkList.append(link.get('href'))
+            hyperlinkList.append(urljoin(resp.url, link.get('href')))
+        
+        for url in soup.find_all('url'):
+            hyperlinkList.append(urljoin(resp.url, url.get('href')))
         
     else:
         print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
@@ -278,12 +281,11 @@ def updateTokens(crawler : crawler, resp):
         tokens = [t for t in text if t not in stopWords]
         
         # update the longest 
-        if(len(tokens) > crawler.longest):
-            crawler.logger.info(f"Updating longest with {len(tokens)} and url : {resp.url}")
-            with crawler.longestLock:
+        with crawler.longestLock:
+            if(len(tokens) > crawler.longest.values()[0]):
+                crawler.logger.info(f"Updating longest with {len(tokens)} and url : {resp.url}")
                 crawler.longestFile.clear() 
                 crawler.longestFile[normalize(resp.url)] = len(tokens)
-                crawler.longest = len(tokens)
                 crawler.longestFile.sync()
             
 
