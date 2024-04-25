@@ -49,6 +49,7 @@ def extract_next_links(crawler, url, resp):
         for link in soup.find_all('a'):
             hyperlinkList.append(urljoin(resp.url, link.get('href')))
         
+        # Iterate through all urls, adding the hyperlink to list
         for url in soup.find_all('url'):
             hyperlinkList.append(urljoin(resp.url, url.get('href')))
             
@@ -120,7 +121,7 @@ def checkLowInfo(crawler, soup, url):
     return True
 
 def handleRedirects(crawler, url):
-    try:
+    try: # Attempt to get another response from server if link is a redirect
         resp = download(url, crawler.frontier.config)
         return resp.url
 
@@ -136,15 +137,20 @@ def is_valid(url):
        
         parsed = urlparse(url) # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
         parsedNetloc = parsed.netloc
+
+        # Ensure the netlock is a string for future functions
         if isinstance(parsedNetloc, bytes):
             parsedNetloc = parsed.netloc.decode('utf-8')  
             
+        # Ensure we are in correct domains
         if not checkDomain(parsedNetloc):
             return False
 
+        # Ensure the link visited is http
         if parsed.scheme not in set(["http", "https"]):
             return False
         
+        # Filter out any nonwebpage extensions
         pattern = r"(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv|rm|smil|wmv|swf|wma|zip|rar|gz)"
 
         compiled_pattern = re.compile(pattern, re.IGNORECASE)
@@ -164,13 +170,12 @@ def checkDomain(netloc: str) -> bool:
     # Available Domains
     domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
 
-    parsed = netloc # Is there a reason to make a copy of it?
+    parsed = netloc
 
     # Sometimes netloc can be in bytes, ifso, decode to string
     if isinstance(netloc, bytes):
        parsed = netloc.decode('utf-8')  
     
-
     for domain in domains:
         if domain in parsed:
             return True
@@ -179,7 +184,7 @@ def checkDomain(netloc: str) -> bool:
     return False
 
 def checkDuplicate(crawler: crawler, soup, resp):
-    # For exact duplicates, use hash
+    # For exact duplicates, use CRC to hash the page and compare to all previously visited pages.
     totalText = soup.get_text()
     crcHash = cyclic_redundancy_check(totalText)
 
