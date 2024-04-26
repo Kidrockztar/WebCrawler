@@ -62,8 +62,7 @@ def extract_next_links(crawler, url, resp):
             scraper(crawler, url, finalURL)
     else:
         print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
-
-    return hyperlinkList
+        return []
 
 def checkLowInfo(crawler, soup, url):
 
@@ -293,9 +292,10 @@ def updateTokens(crawler : crawler, resp):
         
         # update the longest 
         with crawler.longestLock:
-            if(len(tokens) > crawler.longest.values()[0]):
+            if(len(tokens) > crawler.longest):
                 crawler.logger.info(f"Updating longest with {len(tokens)} and url : {resp.url}")
                 crawler.longestFile.clear() 
+                crawler.longest = len(tokens)
                 crawler.longestFile[normalize(resp.url)] = len(tokens)
                 crawler.longestFile.sync()
             
@@ -314,6 +314,8 @@ def updateTokens(crawler : crawler, resp):
     else:
         print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
 
+    # Just in case something goes wrong it doesn't freeze
+    return []
 
 def tokenize_text(text):
     tokens = []
