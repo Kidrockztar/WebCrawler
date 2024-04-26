@@ -83,7 +83,10 @@ class Worker(Thread):
                         robots_url = parsed.scheme + "://" + netloc + "/robots.txt"
                         self.crawler.logger.info("Parsing robots.txt")
                         resp = download(robots_url, self.frontier.config)
-                        
+
+                        # Maintain politness with robot txt request
+                        time.sleep(self.config.time_delay)
+
                         # Check again that the response is not a none type
                         if resp:
                             # Check if the response is successful
@@ -100,6 +103,9 @@ class Worker(Thread):
                                     # Download the xml file from the website
                                     sitemap_resp = download(sitemap_url, self.frontier.config)
 
+                                    # Maintain politness with robot txt request
+                                    time.sleep(self.config.time_delay)
+                                    
                                     # Handle the none object return case
                                     if sitemap_resp:
                                         # Use beautiful soup to parse the xml
@@ -166,6 +172,10 @@ class Worker(Thread):
                     parser = robotparser.RobotFileParser()
                     parser.set_url(parsedScheme + "://" + netloc + "/robots.txt")
                     parser.read()
+
+                    # Maintain politness with robot txt request
+                    time.sleep(self.config.time_delay)
+
                     self.crawler.robotTxt[netloc] = parser
                     return parser.can_fetch(self.crawler.config.user_agent, url)
             # if something wennt wrong we can assume that the robot txt says we are good
