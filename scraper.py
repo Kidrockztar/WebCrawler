@@ -209,18 +209,20 @@ def checkDuplicate(crawler: crawler, soup, resp):
         sim_hash = simHash(totalText)
 
         # Maintain a reasonable queue of links to compare to
-        if(len(crawler.simHashSet.keys()) > simHashQueueLength):
-            crawler.simHashSet.clear()
-            crawler.simHashSet.sync()
+        while True:
+            if len(crawler.simHashSet["Queue"]) > simHashQueueLength:
+                crawler.simHashSet["Queue"].pop(0)
+            else:
+                break
 
-        for sim in crawler.simHashSet.keys():
-            sim = int(sim)
+        
+        for sim in crawler.simHashSet["Queue"]:
             if areSimilarSimHashes(sim_hash, sim, simHashThreshold):
                 #crawler.logger.warning(f"high similarity on {resp.url}")
                 return False
 
         # Set the existance of the hash in the shelve
-        crawler.simHashSet[str(sim_hash)] = True
+        crawler.simHashSet["Queue"].append(sim_hash)
 
     return True
 
