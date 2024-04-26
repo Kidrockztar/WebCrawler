@@ -351,7 +351,8 @@ def tokenize_text(text):
 
     # If there is still chars left in the token, append it to the list
     if current_token:
-        tokens.append(''.join(current_token).lower())
+        if len(current_token) > 1:
+            tokens.append(''.join(current_token).lower())
 
     return tokens
 
