@@ -127,7 +127,7 @@ def checkLowInfo(crawler, soup, url):
 def handleRedirects(crawler, url):
     try: # Attempt to get another response from server if link is a redirect
         resp = download(url, crawler.frontier.config)
-        return resp.url
+        return resp.url # Its okay to return none here
 
     except Exception as e:
         print(f"Error occurred while fetching final URL: {e}")
@@ -157,9 +157,11 @@ def is_valid(url):
         # Filter out any nonwebpage extensions
         pattern = r"(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv|rm|smil|wmv|swf|wma|zip|rar|gz)"
 
+        # Ignore capitalization 
         compiled_pattern = re.compile(pattern, re.IGNORECASE)
 
         # Search for the pattern anywhere in the path
+        # /pdf/file_name would still be a bad link
         return not compiled_pattern.search(parsed.path.lower())
 
 
@@ -210,6 +212,7 @@ def checkDuplicate(crawler: crawler, soup, resp):
                 #crawler.logger.warning(f"high similarity on {resp.url}")
                 return False
 
+        # Set the existance of the hash in the shelve
         crawler.simHashSet[str(sim_hash)] = True
 
     return True

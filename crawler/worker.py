@@ -26,7 +26,7 @@ class Worker(Thread):
         while True:
             tbd_url = self.frontier.get_tbd_url()
             # Check if all of the threads are inactive
-            # if they are then stop crawling
+            # if they are then stop crawling on all threads
             if all(not x for x in self.crawler.activeArray):
                 self.logger.info("Frontier is empty. Stopping Crawler.")
                 break
@@ -52,67 +52,86 @@ class Worker(Thread):
             # Lock the hostname and then do our stuff then wait then free
             with self.crawler.politeLocksDict[parsed.hostname]:
                 
+                # Check if we have permission to crawl the site
                 if not self.checkRobotTxt(tbd_url):
                     self.crawler.logger.info(f"Found blackisted site : {tbd_url}")
                     continue
 
                 resp = download(tbd_url, self.config, self.logger)
-                self.logger.info(
-                    f"Downloaded {tbd_url}, status <{resp.status}>, "
-                    f"using cache {self.config.cache_server}.")
+                # Handle none type
+                if resp:
+                    self.logger.info(
+                        f"Downloaded {tbd_url}, status <{resp.status}>, "
+                        f"using cache {self.config.cache_server}.")
                 # Wait for keeping lock locked while not polite
                 time.sleep(self.config.time_delay)
             
-            scraped_urls = scraper.scraper(self.crawler, tbd_url, resp)
-            if(resp.status == 200):
-                
-                ### Code for questions on assignement
-                scraper.updateTokens(self.crawler , resp)
-                scraper.updateSubDomains(self.crawler, tbd_url)
-                # Check whether we need robots.txt
-                if scraper.checkUniqueNetloc(self.crawler, tbd_url):
-                    self.crawler.logger.info("Getting robot txt")
-                    # get netloc
-                    netloc = normalize(parsed.netloc)
-                    # get robots.txt URL
-                    robots_url = parsed.scheme + "://" + netloc + "/robots.txt"
-                    self.crawler.logger.info("Parsing robots.txt")
-                    resp = download(robots_url, self.frontier.config)
+            # Response might be none type so make sure to handle it 
+            if resp:
+                scraped_urls = scraper.scraper(self.crawler, tbd_url, resp)
+                if(resp.status == 200):
                     
-                    # Check if the response is successful
-                    if resp.status == 200:
-                        # Parse robots.txt content
-                        robots_content = resp.raw_response.content.decode('utf-8')
-                        sitemap_urls = []
-                        for line in robots_content.split('\n'):
-                            if line.startswith("Sitemap:"):
-                                sitemap_urls.append(line.split(":", 1)[1].strip())
+                    ### Code for questions on assignement
+                    scraper.updateTokens(self.crawler , resp)
+                    scraper.updateSubDomains(self.crawler, tbd_url)
+                    # Check whether we need robots.txt
+                    if scraper.checkUniqueNetloc(self.crawler, tbd_url):
+                        self.crawler.logger.info("Getting robot txt")
+                        # get netloc
+                        netloc = normalize(parsed.netloc)
+                        # get robots.txt URL
+                        robots_url = parsed.scheme + "://" + netloc + "/robots.txt"
+                        self.crawler.logger.info("Parsing robots.txt")
+                        resp = download(robots_url, self.frontier.config)
+                        
+                        # Check again that the response is not a none type
+                        if resp:
+                            # Check if the response is successful
+                            if resp.status == 200:
+                                # Parse robots.txt content
+                                robots_content = resp.raw_response.content.decode('utf-8')
+                                sitemap_urls = []
+                                for line in robots_content.split('\n'):
+                                    if line.startswith("Sitemap:"):
+                                        sitemap_urls.append(line.split(":", 1)[1].strip())
 
-                        # Function to recursively parse sitemaps
-                        def parse_sitemap(sitemap_url):
-                            sitemap_resp = download(sitemap_url, self.frontier.config)
-                            sitemap_soup = BeautifulSoup(sitemap_resp.raw_response.content, "xml")
-                            sitemap_links = sitemap_soup.find_all("url")
-                            for link in sitemap_links:
-                                if link:
-                                    # Get the location within the url tags
-                                    actualURL = link.find("loc").text
-                                    print(f"appending {actualURL}")
-                                    scraped_urls.append(actualURL)
+                                # Function to recursively parse sitemaps
+                                def parse_sitemap(sitemap_url):
+                                    # Download the xml file from the website
+                                    sitemap_resp = download(sitemap_url, self.frontier.config)
 
-                            nested_sitemaps = sitemap_soup.find_all("sitemap")
-                            for nested_sitemap in nested_sitemaps: 
-                                nested_sitemap_url = nested_sitemap.find("loc").text
-                                parse_sitemap(nested_sitemap_url)
+                                    # Handle the none object return case
+                                    if sitemap_resp:
+                                        # Use beautiful soup to parse the xml
+                                        sitemap_soup = BeautifulSoup(sitemap_resp.raw_response.content, "xml")
 
-                        # Parse each sitemap recursively
-                        self.crawler.logger.info("Parsing sitemaps")
-                        for sitemap_url in sitemap_urls:
-                            parse_sitemap(sitemap_url)
-                                
-                ## END
-                # Remove none types
-                scraped_urls = [link for link in scraped_urls if link]
+                                        # Get all instances of url in the site map and extract the link
+                                        #<url> <loc> </loc> </url>
+                                        sitemap_links = sitemap_soup.find_all("url")
+                                        for link in sitemap_links:
+                                            if link:
+                                                # Get the location within the url tags
+                                                actualURL = link.find("loc").text
+                                                print(f"appending {actualURL}")
+                                                scraped_urls.append(actualURL)
+
+                                        # If there are nested sitemaps call recursive
+                                        nested_sitemaps = sitemap_soup.find_all("sitemap")
+                                        for nested_sitemap in nested_sitemaps: 
+                                            nested_sitemap_url = nested_sitemap.find("loc").text
+                                            parse_sitemap(nested_sitemap_url)
+                                    else:
+                                        # Return nothing if the site map wasn't succesfully gotten
+                                        return []
+
+                                # Parse each sitemap recursively
+                                self.crawler.logger.info("Parsing sitemaps")
+                                for sitemap_url in sitemap_urls:
+                                    parse_sitemap(sitemap_url)
+                                    
+                    ## END
+                    # Remove none types just in case
+                    scraped_urls = [link for link in scraped_urls if link]
 
                 # add to be searched
                 for scraped_url in scraped_urls:
