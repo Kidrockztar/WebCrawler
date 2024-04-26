@@ -61,9 +61,14 @@ def extract_next_links(crawler, url, resp):
 
         if (finalURL):
             scraper(crawler, url, finalURL)
-    else:
-        print(f"Failed to retrieve the web page. Status code: {resp.status}. Error code: {resp.error}.")
-        return []
+    
+    # Try print out specific weird urls
+    elif resp.status == 403:
+        crawler.logger.info(f"Found forbidden url {url}")
+    elif resp.status == 404:
+        crawler.logger.info(f"Page not found: {url}")
+        
+    return hyperlinkList
 
 def checkLowInfo(crawler, soup, url):
 
@@ -297,11 +302,9 @@ def updateTokens(crawler : crawler, resp):
         
         # update record of longest webpage
         with crawler.longestLock:
-            if(len(tokens) > crawler.longest):
+            if(len(tokens) > crawler.longestFile["Longest"][1]):
                 crawler.logger.info(f"Updating longest with {len(tokens)} and url : {resp.url}")
-                crawler.longestFile.clear() 
-                crawler.longest = len(tokens)
-                crawler.longestFile[normalize(resp.url)] = len(tokens)
+                crawler.longestFile["Longest"] = (resp.url, len(tokens))
                 crawler.longestFile.sync()
             
 
@@ -343,7 +346,7 @@ def tokenize_text(text):
     return tokens
 
 
-# Computing the word frequencies is also O(N) where N is the ammount of words in the list
+# Computing the word frequencies
 def computeWordFrequencies(TokenList : list) -> dict:
     # returns map of tokens to counts
     wordFrequencies = dict()
@@ -372,6 +375,7 @@ def updateSubDomains(crawler:crawler, url):
     if "ics.uci.edu" in normalURL and "ics.uci.edu" != normalURL:
         # reserve the ics domain lock
         with crawler.icsSubDomainCountsLock:
+            # update count
             if normalURL in crawler.icsSubDomainCounts:
                 crawler.icsSubDomainCounts[normalURL] += 1
             else:
@@ -385,6 +389,7 @@ def updateURLCount(crawler : crawler, url):
     parsedURL = urlparse(url)
     noFragmentURL = normalize(parsedURL.scheme+parsedURL.netloc+parsedURL.path)
 
+    # Update the unique pages count without fragments
     with crawler.uniquePagesLock:
         if noFragmentURL not in crawler.uniquePages:
             crawler.uniquePages[noFragmentURL] = True
@@ -394,7 +399,8 @@ def updateURLCount(crawler : crawler, url):
 def checkUniqueNetloc(crawler : crawler, url):
     
     parsed = urlparse(url)
-
+    # Check if this is a new domain
+    # Used to tell when we should check if there is a sitemap
     with crawler.netlocsLock:
         if normalize(parsed.netloc) in crawler.netlocs:
             return False

@@ -101,7 +101,7 @@ class Worker(Thread):
                                     scraped_urls.append(actualURL)
 
                             nested_sitemaps = sitemap_soup.find_all("sitemap")
-                            for nested_sitemap in nested_sitemaps:
+                            for nested_sitemap in nested_sitemaps: 
                                 nested_sitemap_url = nested_sitemap.find("loc").text
                                 parse_sitemap(nested_sitemap_url)
 
@@ -132,14 +132,18 @@ class Worker(Thread):
         if isinstance(parsedScheme, bytes):
             parsedScheme = parsedScheme.decode('utf-8')  
         
+        # sometimes the netloc has www which crashes the code
         netloc = normalize(parsedNetloc.strip("www."))
 
+        # Reserve the shelve
         with self.crawler.robotTxtLock:
             try:
+                # Check if the robot txt has already been fetched
                 if netloc in self.crawler.robotTxt.keys():
                     parser = self.crawler.robotTxt[netloc]
                     return parser.can_fetch(self.crawler.config.user_agent, url)
                 else:
+                    # fetch new robot txt
                     parser = robotparser.RobotFileParser()
                     parser.set_url(parsedScheme + "://" + netloc + "/robots.txt")
                     parser.read()

@@ -17,7 +17,8 @@ class Crawler(object):
 
         # stuff for storing longest file
         self.longestFile = shelve.open("longest.shelve")
-        self.longest = 0
+        if "Longest" not in self.longestFile:
+            self.longestFile["Longest"] = ("", 0)
         self.longestLock = threading.Lock()
 
         # Unique pages storage
