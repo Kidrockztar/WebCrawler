@@ -348,7 +348,8 @@ def tokenize_text(text):
                 current_token.append(char)
         else:
             if current_token:
-                tokens.append(''.join(current_token).lower())
+                if len(current_token) > 1:
+                    tokens.append(''.join(current_token).lower())
                 current_token = []
 
     # If there is still chars left in the token, append it to the list
