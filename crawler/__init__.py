@@ -51,6 +51,8 @@ class Crawler(object):
 
         self.simHashSet = shelve.open("simHashSet.shelve")
         self.simHashSetLock = threading.Lock()
+        if "Queue" not in self.simHashSet:
+            self.simHashSet["Queue"] = []
 
         # threads being done array
         self.activeArray = []

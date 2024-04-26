@@ -1,131 +1,71 @@
 ----- Number of unique pages  -----
-5130
+1487
 ------------------
 ----- Number of tokens -----
-41622
+7460
 ------------------
 ----- Longest page -----
-('http://www.ics.uci.edu/~ziv/resume.html', 13434)
+('Longest', ('https://www.ics.uci.edu/~emilyo', 2145))
 ------------------
 ----- Top 50 tokens -----
-('computer', 15675)
-('s', 13257)
-('will', 12985)
-('uci', 12670)
-('students', 11513)
-('information', 10447)
-('science', 10358)
-('design', 10277)
-('software', 9294)
-('research', 8660)
-('data', 8594)
-('can', 8391)
-('systems', 7984)
-('ics', 7555)
-('email', 6858)
-('project', 6474)
-('work', 5956)
-('school', 5773)
-('game', 5622)
-('professor', 5570)
-('new', 5501)
-('one', 5192)
-('department', 5146)
-('bren', 5126)
-('may', 5115)
-('use', 4968)
-('also', 4957)
-('time', 4819)
-('irvine', 4757)
-('university', 4753)
-('technology', 4682)
-('people', 4656)
-('edu', 4650)
-('programming', 4644)
-('donald', 4499)
-('learning', 4455)
-('engineering', 4214)
-('1', 4177)
-('sciences', 4081)
-('using', 4059)
-('informatics', 4040)
-('development', 3856)
-('office', 3835)
-('social', 3794)
-('student', 3783)
-('course', 3697)
-('analysis', 3601)
-('program', 3560)
-('d', 3540)
-('phone', 3513)
+('bren', 5824)
+('school', 4731)
+('students', 4016)
+('information', 3874)
+('donald', 3650)
+('irvine', 3530)
+('undergraduate', 3428)
+('computer', 2597)
+('sciences', 2421)
+('ics', 1774)
+('uci', 1649)
+('research', 1550)
+('california', 1316)
+('program', 1311)
+('education', 1299)
+('work', 1293)
+('make', 1278)
+('university', 1278)
+('faculty', 1247)
+('opportunities', 1240)
+('ca', 1230)
+('hall', 1218)
+('6210', 1203)
+('92697-3425', 1186)
+('opportunity', 1161)
+('career', 1156)
+('uc', 1153)
+('provides', 1149)
+('complex', 1138)
+('major', 1138)
+('social', 1133)
+('degree', 1132)
+('particular', 1129)
+('view', 1128)
+('media', 1123)
+('recognized', 1109)
+('enrolled', 1103)
+('laboratory', 1101)
+('honors', 1099)
+('classroom', 1098)
+('graduating', 1096)
+('highly', 1096)
+('careers', 1094)
+('exciting', 1092)
+('print', 1092)
+('talented', 1091)
+('join', 1090)
+('library', 1090)
+('ambitious', 1088)
+("bachelor's", 1088)
 ------------------
 ----- Top subdomains -----
-ngs.ics.uci.edu 1799
-grape.ics.uci.edu 921
-ics.ics.uci.edu 754
-informatics.uci.edu 436
-isg.ics.uci.edu 188
-sdcl.ics.uci.edu 175
-transformativeplay.ics.uci.edu 163
-duttgroup.ics.uci.edu 152
-cml.ics.uci.edu 146
-chenli.ics.uci.edu 49
-emj.ics.uci.edu 42
-iasl.ics.uci.edu 36
-plrg.ics.uci.edu 36
-jgarcia.ics.uci.edu 33
-dgillen.ics.uci.edu 32
-mswe.ics.uci.edu 32
-industryshowcase.ics.uci.edu 31
-informatics.ics.uci.edu 29
-create.ics.uci.edu 27
-cradl.ics.uci.edu 26
-mcs.ics.uci.edu 21
-nalini.ics.uci.edu 21
-code.ics.uci.edu 19
-unite.ics.uci.edu 19
-luci.ics.uci.edu 15
-cwicsocal18.ics.uci.edu 14
-mhcid.ics.uci.edu 11
-redmiles.ics.uci.edu 11
-seal.ics.uci.edu 11
-flamingo.ics.uci.edu 10
-hpi.ics.uci.edu 10
-asterix.ics.uci.edu 6
-ipf.ics.uci.edu 6
-computableplant.ics.uci.edu 4
-studentcouncil.ics.uci.edu 3
-tad.ics.uci.edu 3
-fr.ics.uci.edu 2
-graphics.ics.uci.edu 2
-hack.ics.uci.edu 2
-hai.ics.uci.edu 2
-ipubmed.ics.uci.edu 2
-mse.ics.uci.edu 2
-Transformativeplay.ics.uci.edu 1
-accessibility.ics.uci.edu 1
-aiclub.ics.uci.edu 1
-archive.ics.uci.edu 1
-cert.ics.uci.edu 1
-evoke.ics.uci.edu 1
-futurehealth.ics.uci.edu 1
-hobbes.ics.uci.edu 1
-i-sensorium.ics.uci.edu 1
-keys.ics.uci.edu 1
-linguistics.uci.edu 1
-malek.ics.uci.edu 1
-mdogucu.ics.uci.edu 1
-mds.ics.uci.edu 1
-psearch.ics.uci.edu 1
-radicle.ics.uci.edu 1
-sherlock.ics.uci.edu 1
-statconsulting.ics.uci.edu 1
-swiki.ics.uci.edu 1
-tastier.ics.uci.edu 1
-tippersweb.ics.uci.edu 1
-tutors.ics.uci.edu 1
-vision.ics.uci.edu 1
+sdcl.ics.uci.edu 118
+mswe.ics.uci.edu 20
+informatics.uci.edu 19
+frost.ics.uci.edu 1
+mse.ics.uci.edu 1
 ------------------
 ----- Lenght of robotTXTs -----
-79
+7
 ------------------

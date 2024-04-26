@@ -32,6 +32,10 @@ def extract_next_links(crawler, url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     
     hyperlinkList = []
+
+    # handle none case
+    if not resp:
+        return []
     if resp.status == 200:
 
         # Parse the page content using beautiful soup
@@ -128,7 +132,7 @@ def checkLowInfo(crawler, soup, url):
 def handleRedirects(crawler, url):
     try: # Attempt to get another response from server if link is a redirect
         resp = download(url, crawler.frontier.config)
-        return resp.url # Its okay to return none here
+        return resp # Its okay to return none here
 
     except Exception as e:
         print(f"Error occurred while fetching final URL: {e}")
