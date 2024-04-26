@@ -14,6 +14,7 @@ contentToCodeRatioThreshold = 0.9
 uniqueWordRatioThreshold = 0.02
 linkToContentRatioThreshold = 20
 simHashThreshold = 0.8
+simHashQueueLength = 50
 
 
 def scraper(crawler : crawler, url, resp): 
@@ -206,6 +207,12 @@ def checkDuplicate(crawler: crawler, soup, resp):
     # Check for near duplicates with simhashes
     with crawler.simHashSetLock:
         sim_hash = simHash(totalText)
+
+        # Maintain a reasonable queue of links to compare to
+        if(len(crawler.simHashSet.keys()) > simHashQueueLength):
+            crawler.simHashSet.clear()
+            crawler.simHashSet.sync()
+
         for sim in crawler.simHashSet.keys():
             sim = int(sim)
             if areSimilarSimHashes(sim_hash, sim, simHashThreshold):
