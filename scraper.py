@@ -209,11 +209,8 @@ def checkDuplicate(crawler: crawler, soup, resp):
         sim_hash = simHash(totalText)
 
         # Maintain a reasonable queue of links to compare to
-        while True:
-            if len(crawler.simHashSet["Queue"]) > simHashQueueLength:
+        while len(crawler.simHashSet["Queue"]) > simHashQueueLength:
                 crawler.simHashSet["Queue"].pop(0)
-            else:
-                break
 
         
         for sim in crawler.simHashSet["Queue"]:
