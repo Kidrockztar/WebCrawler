@@ -197,7 +197,7 @@ def checkDuplicate(crawler: crawler, soup, resp):
         else:
             crawler.hashOfPages[str(crcHash)] = True
 
-    # Check for near duplicates
+    # Check for near duplicates with simhashes
     with crawler.simHashSetLock:
         sim_hash = simHash(totalText)
         for sim in crawler.simHashSet.keys():
@@ -296,7 +296,7 @@ def updateTokens(crawler : crawler, resp):
         # remove stopwords and punctuation
         tokens = [t for t in text if t not in stopWords]
         
-        # update the longest 
+        # update record of longest webpage
         with crawler.longestLock:
             if(len(tokens) > crawler.longest.values()[0]):
                 crawler.logger.info(f"Updating longest with {len(tokens)} and url : {resp.url}")
@@ -309,7 +309,7 @@ def updateTokens(crawler : crawler, resp):
         tokens = computeWordFrequencies(tokens)
 
         with crawler.tokensLock:
-            # update counts
+            # update counts of each token
             for k,v in tokens.items():
                 if k in crawler.tokens:
                     crawler.tokens[k] += v
@@ -321,18 +321,23 @@ def updateTokens(crawler : crawler, resp):
 
 
 def tokenize_text(text):
+
     tokens = []
     current_token = []
+
+    # Iterate through text to tokenize words
     for char in text:
-        if (char.isascii() and char.isalnum()) or (char == "'" or char == "-"):
+        if (char.isascii() and char.isalnum()) or (char == "'" or char == "-"): # Check for apostrophes or dashes
                 current_token.append(char)
         else:
             if current_token:
                 tokens.append(''.join(current_token).lower())
                 current_token = []
-    # Place token on if it exists
+
+    # If there is still chars left in the token, append it to the list
     if current_token:
         tokens.append(''.join(current_token).lower())
+
     return tokens
 
 
@@ -340,6 +345,7 @@ def tokenize_text(text):
 def computeWordFrequencies(TokenList : list) -> dict:
     # returns map of tokens to counts
     wordFrequencies = dict()
+
     for t in TokenList:
         if t in wordFrequencies.keys():
             wordFrequencies[t] += 1
@@ -350,10 +356,13 @@ def computeWordFrequencies(TokenList : list) -> dict:
     
 
 def updateSubDomains(crawler:crawler, url):
+
     parsedURL = urlparse(url)
     normalURL = ""
     # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
-    if isinstance(parsedURL.netloc, bytes):
+
+    # Ensure url is a string and remove www.
+    if isinstance(parsedURL.netloc, bytes): 
         normalURL = normalize(parsedURL.netloc.decode('utf-8')).strip("www.")
     else:
         normalURL = normalize(parsedURL.netloc).strip("www.")
@@ -370,6 +379,7 @@ def updateSubDomains(crawler:crawler, url):
     
 
 def updateURLCount(crawler : crawler, url):
+
     parsedURL = urlparse(url)
     noFragmentURL = normalize(parsedURL.scheme+parsedURL.netloc+parsedURL.path)
 
@@ -380,6 +390,7 @@ def updateURLCount(crawler : crawler, url):
 
 
 def checkUniqueNetloc(crawler : crawler, url):
+    
     parsed = urlparse(url)
 
     with crawler.netlocsLock:
