@@ -49,6 +49,7 @@ def extract_next_links(crawler, url, resp):
         for link in soup.find_all('a'):
             hyperlinkList.append(urljoin(resp.url, link.get('href')))
         
+        # Iterate through all urls, adding the hyperlink to list
         for url in soup.find_all('url'):
             hyperlinkList.append(urljoin(resp.url, url.get('href')))
             
@@ -119,7 +120,7 @@ def checkLowInfo(crawler, soup, url):
     return True
 
 def handleRedirects(crawler, url):
-    try:
+    try: # Attempt to get another response from server if link is a redirect
         resp = download(url, crawler.frontier.config)
         return resp.url
 
@@ -135,15 +136,20 @@ def is_valid(url):
        
         parsed = urlparse(url) # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
         parsedNetloc = parsed.netloc
+
+        # Ensure the netlock is a string for future functions
         if isinstance(parsedNetloc, bytes):
             parsedNetloc = parsed.netloc.decode('utf-8')  
             
+        # Ensure we are in correct domains
         if not checkDomain(parsedNetloc):
             return False
 
+        # Ensure the link visited is http
         if parsed.scheme not in set(["http", "https"]):
             return False
         
+        # Filter out any nonwebpage extensions
         pattern = r"(css|js|bmp|gif|jpe?g|ico|png|tiff?|mid|mp2|mp3|mp4|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1|thmx|mso|arff|rtf|jar|csv|rm|smil|wmv|swf|wma|zip|rar|gz)"
 
         compiled_pattern = re.compile(pattern, re.IGNORECASE)
@@ -163,13 +169,12 @@ def checkDomain(netloc: str) -> bool:
     # Available Domains
     domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
 
-    parsed = netloc # Is there a reason to make a copy of it?
+    parsed = netloc
 
     # Sometimes netloc can be in bytes, ifso, decode to string
     if isinstance(netloc, bytes):
        parsed = netloc.decode('utf-8')  
     
-
     for domain in domains:
         if domain in parsed:
             return True
@@ -178,7 +183,7 @@ def checkDomain(netloc: str) -> bool:
     return False
 
 def checkDuplicate(crawler: crawler, soup, resp):
-    # For exact duplicates, use hash
+    # For exact duplicates, use CRC to hash the page and compare to all previously visited pages.
     totalText = soup.get_text()
     crcHash = cyclic_redundancy_check(totalText)
 
@@ -191,7 +196,7 @@ def checkDuplicate(crawler: crawler, soup, resp):
         else:
             crawler.hashOfPages[str(crcHash)] = True
 
-    # Check for near duplicates
+    # Check for near duplicates with simhashes
     with crawler.simHashSetLock:
         sim_hash = simHash(totalText)
         for sim in crawler.simHashSet.keys():
@@ -290,7 +295,7 @@ def updateTokens(crawler : crawler, resp):
         # remove stopwords and punctuation
         tokens = [t for t in text if t not in stopWords]
         
-        # update the longest 
+        # update record of longest webpage
         with crawler.longestLock:
             if(len(tokens) > crawler.longest):
                 crawler.logger.info(f"Updating longest with {len(tokens)} and url : {resp.url}")
@@ -304,7 +309,7 @@ def updateTokens(crawler : crawler, resp):
         tokens = computeWordFrequencies(tokens)
 
         with crawler.tokensLock:
-            # update counts
+            # update counts of each token
             for k,v in tokens.items():
                 if k in crawler.tokens:
                     crawler.tokens[k] += v
@@ -318,18 +323,23 @@ def updateTokens(crawler : crawler, resp):
     return []
 
 def tokenize_text(text):
+
     tokens = []
     current_token = []
+
+    # Iterate through text to tokenize words
     for char in text:
-        if (char.isascii() and char.isalnum()) or (char == "'" or char == "-"):
+        if (char.isascii() and char.isalnum()) or (char == "'" or char == "-"): # Check for apostrophes or dashes
                 current_token.append(char)
         else:
             if current_token:
                 tokens.append(''.join(current_token).lower())
                 current_token = []
-    # Place token on if it exists
+
+    # If there is still chars left in the token, append it to the list
     if current_token:
         tokens.append(''.join(current_token).lower())
+
     return tokens
 
 
@@ -337,6 +347,7 @@ def tokenize_text(text):
 def computeWordFrequencies(TokenList : list) -> dict:
     # returns map of tokens to counts
     wordFrequencies = dict()
+
     for t in TokenList:
         if t in wordFrequencies.keys():
             wordFrequencies[t] += 1
@@ -347,10 +358,13 @@ def computeWordFrequencies(TokenList : list) -> dict:
     
 
 def updateSubDomains(crawler:crawler, url):
+
     parsedURL = urlparse(url)
     normalURL = ""
     # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
-    if isinstance(parsedURL.netloc, bytes):
+
+    # Ensure url is a string and remove www.
+    if isinstance(parsedURL.netloc, bytes): 
         normalURL = normalize(parsedURL.netloc.decode('utf-8')).strip("www.")
     else:
         normalURL = normalize(parsedURL.netloc).strip("www.")
@@ -367,6 +381,7 @@ def updateSubDomains(crawler:crawler, url):
     
 
 def updateURLCount(crawler : crawler, url):
+
     parsedURL = urlparse(url)
     noFragmentURL = normalize(parsedURL.scheme+parsedURL.netloc+parsedURL.path)
 
@@ -377,6 +392,7 @@ def updateURLCount(crawler : crawler, url):
 
 
 def checkUniqueNetloc(crawler : crawler, url):
+    
     parsed = urlparse(url)
 
     with crawler.netlocsLock:
