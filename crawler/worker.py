@@ -53,18 +53,20 @@ class Worker(Thread):
                 # Check if we have permission to crawl the site
                 if not self.checkRobotTxt(tbd_url):
                     self.crawler.logger.info(f"Found blackisted site : {tbd_url}")
+                    self.frontier.remove_url(tbd_url)
                     continue
 
                 resp = download(tbd_url, self.config, self.logger)
                 # Handle none type
-                if resp:
+                if resp and resp.raw_response:
                     self.logger.info(
                         f"Downloaded {tbd_url}, status <{resp.status}>, "
                         f"using cache {self.config.cache_server}.")
                 # Wait for keeping lock locked while not polite
                 time.sleep(self.config.time_delay)
 
-                if resp:
+                # Added response checker
+                if resp and resp.raw_response:
                     if (resp.status == 301 or resp.status == 302):
                         # Delete url from frontier 
                         self.frontier.remove_url(tbd_url)
@@ -90,17 +92,17 @@ class Worker(Thread):
                             # get robots.txt URL
                             robots_url = parsed.scheme + "://" + netloc + "/robots.txt"
                             self.crawler.logger.info("Parsing robots.txt")
-                            resp = download(robots_url, self.frontier.config)
+                            robotResp = download(robots_url, self.frontier.config)
 
                             # Maintain politness with robot txt request
                             time.sleep(self.config.time_delay)
 
                             # Check again that the response is not a none type
-                            if resp:
+                            if robotResp:
                                 # Check if the response is successful
-                                if resp.status == 200:
+                                if robotResp.status == 200:
                                     # Parse robots.txt content
-                                    robots_content = resp.raw_response.content.decode('utf-8')
+                                    robots_content = robotResp.raw_response.content.decode('utf-8')
                                     sitemap_urls = []
                                     for line in robots_content.split('\n'):
                                         if line.startswith("Sitemap:"):
@@ -115,7 +117,7 @@ class Worker(Thread):
                                         time.sleep(self.config.time_delay)
                                         
                                         # Handle the none object return case
-                                        if sitemap_resp:
+                                        if sitemap_resp and sitemap_resp.raw_response:
                                             # Use beautiful soup to parse the xml
                                             sitemap_soup = BeautifulSoup(sitemap_resp.raw_response.content, "xml")
 
@@ -147,10 +149,12 @@ class Worker(Thread):
                         # Remove none types just in case
                         scraped_urls = [link for link in scraped_urls if link]
 
-                # add to be searched
-                for scraped_url in scraped_urls:
-                    self.frontier.add_url(scraped_url)
-                # Mark this url complete
+                        # add to be searched
+                        for scraped_url in scraped_urls:
+                            self.frontier.add_url(scraped_url)
+                
+                # Mark this url complete regardless of the outcome
+                
                 self.frontier.mark_url_complete(resp.url)
                 
 
@@ -172,7 +176,6 @@ class Worker(Thread):
 
         # Reserve the shelve
         with self.crawler.robotTxtLock:
-            try:
                 # Check if the robot txt has already been fetched
                 if netloc in self.crawler.robotTxt.keys():
                     parser = self.crawler.robotTxt[netloc]
@@ -181,16 +184,21 @@ class Worker(Thread):
                     # fetch new robot txt
                     parser = robotparser.RobotFileParser()
                     parser.set_url(parsedScheme + "://" + netloc + "/robots.txt")
-                    parser.read()
+                    try:
+                        parser.read()
+                        # Maintain politness with robot txt request
+                        time.sleep(self.config.time_delay)
+                        self.crawler.robotTxt[netloc] = parser
+                        return parser.can_fetch(self.crawler.config.user_agent, url)
+                    except Exception as e:
+                        return True
 
-                    # Maintain politness with robot txt request
-                    time.sleep(self.config.time_delay)
+                
 
-                    self.crawler.robotTxt[netloc] = parser
-                    return parser.can_fetch(self.crawler.config.user_agent, url)
+                    
             # if something wennt wrong we can assume that the robot txt says we are good
-            except Exception as e:
-                self.crawler.logger.info(f"{e} on {netloc}")
-                return True
+            #except Exception as e:
+            #    self.crawler.logger.info(f"{e} on {netloc}")
+            #    return True
 
         

@@ -37,6 +37,8 @@ def extract_next_links(crawler, url, resp):
     if not resp:
         return []
 
+    if not resp.raw_response:
+        return []
     # Parse the page content using beautiful soup
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
