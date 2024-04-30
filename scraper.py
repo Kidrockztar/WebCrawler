@@ -36,41 +36,35 @@ def extract_next_links(crawler, url, resp):
     # handle none case
     if not resp:
         return []
-    if resp.status == 200:
 
-        # Parse the page content using beautiful soup
-        soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+    # Parse the page content using beautiful soup
+    soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
-        # Check for duplicates/near duplicates
-        if not checkDuplicate(crawler, soup, resp):
-            print(f"returning after checking hash for {resp.url}")
-            return []
-
-        # Check for low information pages
-        if not checkLowInfo(crawler, soup, resp.url):
-            return []
-
-        # Iterate through <a> objects, adding the hyperlink to list
-        for link in soup.find_all('a'):
-            hyperlinkList.append(urljoin(resp.url, link.get('href')))
-        
-        # Iterate through all urls, adding the hyperlink to list
-        for url in soup.find_all('url'):
-            hyperlinkList.append(urljoin(resp.url, url.get('href')))
-            
-    elif (resp.status ==301 or resp.status == 302) or (url != resp.url): # Check for redirects
-
-        # If redirect link, then find its final URL, and recall scraper function
-        crawler.logger.warning(f"redirect link detected for: {url}")
-        finalURL = handleRedirects(crawler, url)
-
-        if (finalURL):
-            scraper(crawler, url, finalURL)
+    # Check for repeated paths 
+    if re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", resp.url):
+        return []
     
+    # Check for duplicates/near duplicates
+    if not checkDuplicate(crawler, soup, resp):
+        print(f"returning after checking hash for {resp.url}")
+        return []
+
+    # Check for low information pages
+    if not checkLowInfo(crawler, soup, resp.url):
+        return []
+
+    # Iterate through <a> objects, adding the hyperlink to list
+    for link in soup.find_all('a'):
+        hyperlinkList.append(urljoin(resp.url, link.get('href')))
+    
+    # Iterate through all urls, adding the hyperlink to list
+    for url in soup.find_all('url'):
+        hyperlinkList.append(urljoin(resp.url, url.get('href')))
+            
     # Try print out specific weird urls
-    elif resp.status == 403:
+    if resp.status == 403:
         crawler.logger.info(f"Found forbidden url {url}")
-    elif resp.status == 404:
+    if resp.status == 404:
         crawler.logger.info(f"Page not found: {url}")
         
     return hyperlinkList
@@ -128,15 +122,7 @@ def checkLowInfo(crawler, soup, url):
        return False
     
     return True
-
-def handleRedirects(crawler, url):
-    try: # Attempt to get another response from server if link is a redirect
-        resp = download(url, crawler.frontier.config)
-        return resp # Its okay to return none here
-
-    except Exception as e:
-        print(f"Error occurred while fetching final URL: {e}")
-        return None
+    
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 

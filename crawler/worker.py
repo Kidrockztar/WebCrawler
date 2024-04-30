@@ -37,9 +37,7 @@ class Worker(Thread):
                 continue
             else:
                  self.crawler.activeArray[self.workerId] = True
-
-            # See if it is a new url we are checking
-            scraper.updateURLCount(self.crawler, tbd_url)
+                 
             # Check if there is a lock already existing in the dict for this hostname
             parsed = urlparse(tbd_url)
 
@@ -65,16 +63,27 @@ class Worker(Thread):
                         f"using cache {self.config.cache_server}.")
                 # Wait for keeping lock locked while not polite
                 time.sleep(self.config.time_delay)
-                
+
                 if resp:
-                    scraped_urls = scraper.scraper(self.crawler, tbd_url, resp)
-                    if(resp.status == 200):
+                    if (resp.status == 301 or resp.status == 302):
+                        # Delete url from frontier 
+                        self.frontier.remove_url(tbd_url)
+                        # Add redirected url
+                        self.frontier.add_url(resp.url)
+                    
+                    # Update the count of the URLS
+                    scraper.updateURLCount(self.crawler, resp.url)
+                    
+                    
+                    if(resp.status == 200 or resp.status == 301 or resp.status == 302):
                         
+                        # Actually scrape the response
+                        scraped_urls = scraper.scraper(self.crawler, resp.url, resp)
                         ### Code for questions on assignement
                         scraper.updateTokens(self.crawler , resp)
-                        scraper.updateSubDomains(self.crawler, tbd_url)
+                        scraper.updateSubDomains(self.crawler, resp.url)
                         # Check whether we need robots.txt
-                        if scraper.checkUniqueNetloc(self.crawler, tbd_url):
+                        if scraper.checkUniqueNetloc(self.crawler, resp.url):
                             self.crawler.logger.info("Getting robot txt")
                             # get netloc
                             netloc = normalize(parsed.netloc)
@@ -141,7 +150,9 @@ class Worker(Thread):
                 # add to be searched
                 for scraped_url in scraped_urls:
                     self.frontier.add_url(scraped_url)
-                self.frontier.mark_url_complete(tbd_url)
+                # Mark this url complete
+                self.frontier.mark_url_complete(resp.url)
+                
 
 
     def checkRobotTxt(self, url):

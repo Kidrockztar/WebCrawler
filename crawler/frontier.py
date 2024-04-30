@@ -80,3 +80,19 @@ class Frontier(object):
         with self.frontierLock:
             self.save[urlhash] = (url, True)
             self.save.sync()
+
+
+    def remove_url(self, url):
+        url = normalize(url)
+        urlhash = get_urlhash(url)
+        if urlhash not in self.save:
+            # This should not happen.
+            self.logger.error(
+                f"Deleting url {url}, but have not seen it before.")
+        with self.frontierLock:
+            try:
+                # Delete the url from the frontier
+                del self.save[urlhash]
+                self.save.sync()
+            except:
+                self.logger.error(f"failed delete on {url}")

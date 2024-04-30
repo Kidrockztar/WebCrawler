@@ -35,4 +35,9 @@ if __name__ == "__main__":
         generate_report("Top subdomains", sorted_URL_subdomains, f)
 
         generate_report("Lenght of robotTXTs", len(robot), f)
+
+    with open("uniquepages.txt", "w") as f:
+        generate_report("Number of pages", len(urlCount.items()), f)
+        results = dict(urlCount.items())
+        generate_report("Longest page", results, f)
         
