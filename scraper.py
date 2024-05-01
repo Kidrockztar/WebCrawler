@@ -34,11 +34,9 @@ def extract_next_links(crawler, url, resp):
     hyperlinkList = []
 
     # handle none case
-    if not resp:
+    if (not resp) or (not resp.raw_response) or (not resp.raw_response.content):
         return []
-
-    if not resp.raw_response:
-        return []
+    
     # Parse the page content using beautiful soup
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
@@ -63,7 +61,7 @@ def extract_next_links(crawler, url, resp):
     for url in soup.find_all('url'):
         hyperlinkList.append(urljoin(resp.url, url.get('href')))
             
-    # Try print out specific weird urls
+    # Print out specific invalid urls
     if resp.status == 403:
         crawler.logger.info(f"Found forbidden url {url}")
     if resp.status == 404:

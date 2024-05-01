@@ -57,17 +57,18 @@ class Worker(Thread):
                     continue
 
                 resp = download(tbd_url, self.config, self.logger)
+
+                # Wait for keeping lock locked while not polite
+                time.sleep(self.config.time_delay)
+
                 # Handle none type
                 if resp and resp.raw_response:
                     self.logger.info(
                         f"Downloaded {tbd_url}, status <{resp.status}>, "
                         f"using cache {self.config.cache_server}.")
-                # Wait for keeping lock locked while not polite
-                time.sleep(self.config.time_delay)
 
-                # Added response checker
-                if resp and resp.raw_response:
-                    if (resp.status == 301 or resp.status == 302):
+                    # Handle website redirects and make sure we index the redirected content
+                    if (resp.status == 301 or resp.status == 302 or tbd_url != resp.url):
                         # Delete url from frontier 
                         self.frontier.remove_url(tbd_url)
                         # Add redirected url
@@ -75,7 +76,6 @@ class Worker(Thread):
                     
                     # Update the count of the URLS
                     scraper.updateURLCount(self.crawler, resp.url)
-                    
                     
                     if(resp.status == 200 or resp.status == 301 or resp.status == 302):
                         
@@ -146,15 +146,14 @@ class Worker(Thread):
                                         parse_sitemap(sitemap_url)
                                         
                         ## END
-                        # Remove none types just in case
+                        # Another level of insurance to catch none type links
                         scraped_urls = [link for link in scraped_urls if link]
 
-                        # add to be searched
+                        # add found links to be searched in the frontier
                         for scraped_url in scraped_urls:
                             self.frontier.add_url(scraped_url)
                 
                 # Mark this url complete regardless of the outcome
-                
                 self.frontier.mark_url_complete(resp.url)
                 
 
@@ -192,13 +191,5 @@ class Worker(Thread):
                         return parser.can_fetch(self.crawler.config.user_agent, url)
                     except Exception as e:
                         return True
-
-                
-
-                    
-            # if something wennt wrong we can assume that the robot txt says we are good
-            #except Exception as e:
-            #    self.crawler.logger.info(f"{e} on {netloc}")
-            #    return True
 
         
