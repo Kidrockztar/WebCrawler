@@ -14,7 +14,7 @@ contentToCodeRatioThreshold = 0.9
 uniqueWordRatioThreshold = 0.02
 linkToContentRatioThreshold = 10
 simHashThreshold = 0.8
-simHashQueueLength = 150
+simHashQueueLength = 50
 
 
 def scraper(crawler : crawler, url, resp): 
@@ -399,6 +399,7 @@ def updateSubDomains(crawler:crawler, url):
 def updateURLCount(crawler : crawler, url):
 
     parsedURL = urlparse(url)
+    # Prevent queries being overloaded
     noFragmentURL = normalize(parsedURL.scheme+parsedURL.netloc+parsedURL.path)
 
     # Update the unique pages count without fragments
