@@ -151,7 +151,8 @@ class Worker(Thread):
 
                         # add found links to be searched in the frontier
                         for scraped_url in scraped_urls:
-                            self.frontier.add_url(scraped_url)
+                            if scraper.is_valid(self.crawler, scraped_url):
+                                self.frontier.add_url(scraped_url)
                 
                 # Mark this url complete regardless of the outcome
                 self.frontier.mark_url_complete(resp.url)
