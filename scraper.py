@@ -9,17 +9,17 @@ from utils.download import download
 
 
 stopWords = {"we'd", 'his', "you're", 'its', "mustn't", "i'd", "you've", 'that', 'nor', 'only', 'both', 'because', 'through', 'from', 'herself', 'same', 'themselves', 'having', 'this', "we're", 'further', 'your', 'which', "that's", 'down', 'been', 'more', "weren't", 'why', 'with', 'some', 'them', 'below', 'their', "couldn't", 'if', 'then', 'in', 'about', 'i', 'of', "wouldn't", "she's", 'all', "i'm", 'than', 'what', 'when', 'against', 'so', 'he', 'did', "hadn't", 'those', "aren't", 'here', 'yours', "it's", 'be', 'until', "when's", 'no', 'an', "don't", 'not', 'were', "doesn't", 'me', 'on', "there's", 'at', 'any', 'out', "i've", 'over', 'have', 'has', 'we', "they've", "wasn't", "we'll", 'yourselves', 'whom', "hasn't", "they'll", 'a', 'to', 'but', "he'd", 'am', 'her', 'above', 'under', 'the', 'after', "they'd", 'doing', "haven't", 'should', 'him', 'is', 'other', "shouldn't", 'how', 'cannot', 'they', "i'll", 'itself', 'myself', 'himself', 'between', 'it', 'would', 'my', "they're", "she'll", 'ours', 'or', 'was', 'where', "won't", "can't", 'too', "here's", "where's", 'again', 'into', 'most', "let's", 'does', 'by', 'being', 'these', 'such', "he'll", "isn't", "didn't", "who's", 'few', "you'd", 'you', 'do', 'each', 'ourselves', "we've", 'yourself', 'who', 'during', 'our', 'are', "what's", "you'll", 'and', 'as', 'hers', 'once', 'up', 'off', "shan't", 'she', 'there', 'while', "he's", 'could', "how's", 'very', 'before', 'ought', 'for', 'had', "she'd", "why's", 'own', 'theirs'}
-wordCountThreshold = 100
+wordCountThreshold = 400
 contentToCodeRatioThreshold = 0.9
 uniqueWordRatioThreshold = 0.02
-linkToContentRatioThreshold = 20
+linkToContentRatioThreshold = 10
 simHashThreshold = 0.8
-simHashQueueLength = 50
+simHashQueueLength = 150
 
 
 def scraper(crawler : crawler, url, resp): 
     links = extract_next_links(crawler, url, resp)
-    return [link for link in links if is_valid(link)]
+    return [link for link in links if is_valid(crawler, link)]
 
 def extract_next_links(crawler, url, resp):
     # url: the URL that was used to get the page
@@ -39,8 +39,8 @@ def extract_next_links(crawler, url, resp):
     
     # Parse the page content using beautiful soup
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
-
-    # Check for repeated paths 
+    
+    # Check for repeated paths again just in case it got in here
     if re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", resp.url):
         return []
     
@@ -124,7 +124,7 @@ def checkLowInfo(crawler, soup, url):
     return True
     
 
-def is_valid(url):
+def is_valid(crawler : crawler, url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
@@ -132,6 +132,13 @@ def is_valid(url):
        
         parsed = urlparse(url) # returns <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
         parsedNetloc = parsed.netloc
+
+        noFragmentURL = normalize(parsed.scheme+parsed.netloc+parsed.path)
+
+        # Update the unique pages count without fragments
+        with crawler.uniquePagesLock:
+            if noFragmentURL in crawler.uniquePages:
+                return False
 
         # Ensure the netlock is a string for future functions
         if isinstance(parsedNetloc, bytes):
@@ -141,6 +148,10 @@ def is_valid(url):
         if not checkDomain(parsedNetloc):
             return False
 
+        
+            # Check for repeated paths 
+        if re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", url):
+            return False
         # Ensure the link visited is http
         if parsed.scheme not in set(["http", "https"]):
             return False

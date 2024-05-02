@@ -1,71 +1,111 @@
 ----- Number of unique pages  -----
-1487
+2383
 ------------------
 ----- Number of tokens -----
-7460
+28392
 ------------------
 ----- Longest page -----
-('Longest', ('https://www.ics.uci.edu/~emilyo', 2145))
+('Longest', ('http://www.ics.uci.edu/community/news/view_news.php?id=1097', 20819))
 ------------------
 ----- Top 50 tokens -----
-('bren', 5824)
-('school', 4731)
-('students', 4016)
-('information', 3874)
-('donald', 3650)
-('irvine', 3530)
-('undergraduate', 3428)
-('computer', 2597)
-('sciences', 2421)
-('ics', 1774)
-('uci', 1649)
-('research', 1550)
-('california', 1316)
-('program', 1311)
-('education', 1299)
-('work', 1293)
-('make', 1278)
-('university', 1278)
-('faculty', 1247)
-('opportunities', 1240)
-('ca', 1230)
-('hall', 1218)
-('6210', 1203)
-('92697-3425', 1186)
-('opportunity', 1161)
-('career', 1156)
-('uc', 1153)
-('provides', 1149)
-('complex', 1138)
-('major', 1138)
-('social', 1133)
-('degree', 1132)
-('particular', 1129)
-('view', 1128)
-('media', 1123)
-('recognized', 1109)
-('enrolled', 1103)
-('laboratory', 1101)
-('honors', 1099)
-('classroom', 1098)
-('graduating', 1096)
-('highly', 1096)
-('careers', 1094)
-('exciting', 1092)
-('print', 1092)
-('talented', 1091)
-('join', 1090)
-('library', 1090)
-('ambitious', 1088)
-("bachelor's", 1088)
+('search', 56024)
+('file', 28130)
+('name', 27993)
+('uci', 17383)
+('students', 15726)
+('will', 15694)
+('computer', 15601)
+('information', 12564)
+('research', 12180)
+('school', 11999)
+('ics', 11563)
+('bren', 10960)
+('science', 10785)
+('can', 9861)
+('data', 9553)
+('view', 8995)
+('irvine', 8337)
+('two', 8151)
+('donald', 8005)
+('work', 7569)
+('university', 7434)
+('new', 7235)
+('sciences', 7190)
+('learning', 7143)
+('professor', 7032)
+('also', 6377)
+('program', 6333)
+('page', 6225)
+('says', 6086)
+('software', 5884)
+('link', 5340)
+('faculty', 5305)
+('one', 5302)
+('shows', 5246)
+('differences', 5195)
+('versions', 5189)
+('comparison', 5167)
+('next', 5125)
+('california', 4891)
+('social', 4877)
+('student', 4869)
+('screen', 4776)
+('systems', 4659)
+('media', 4654)
+('undergraduate', 4621)
+('team', 4575)
+('technology', 4540)
+('informatics', 4492)
+('project', 4429)
+('engineering', 4354)
 ------------------
 ----- Top subdomains -----
+iki.ics.uci.edu 97995
+elms.ics.uci.edu 201
+vision.ics.uci.edu 160
 sdcl.ics.uci.edu 118
-mswe.ics.uci.edu 20
-informatics.uci.edu 19
-frost.ics.uci.edu 1
+informatics.uci.edu 111
+linguistics.uci.edu 79
+cml.ics.uci.edu 78
+isg.ics.uci.edu 66
+computableplant.ics.uci.edu 61
+mswe.ics.uci.edu 45
+student-council.ics.uci.edu 45
+luci.ics.uci.edu 26
+scratch.proteomics.ics.uci.edu 21
+circadiomics.ics.uci.edu 16
+flamingo.ics.uci.edu 16
+nalini.ics.uci.edu 14
+reactions.ics.uci.edu 14
+emj.ics.uci.edu 13
+transformativeplay.ics.uci.edu 11
+evoke.ics.uci.edu 10
+cert.ics.uci.edu 8
+selectpro.proteomics.ics.uci.edu 7
+motifmap.ics.uci.edu 6
+sherlock.ics.uci.edu 6
+pepito.proteomics.ics.uci.edu 5
+statconsulting.ics.uci.edu 4
+mondego.ics.uci.edu 3
+cybert.ics.uci.edu 2
+frost.ics.uci.edu 2
+graphics.ics.uci.edu 2
+informatics.ics.uci.edu 2
+ipubmed.ics.uci.edu 2
+motifmap-rna.ics.uci.edu 2
+mupro.proteomics.ics.uci.edu 2
+betapro.proteomics.ics.uci.edu 1
+cdb.ics.uci.edu 1
+dejavu.ics.uci.edu 1
+fr.ics.uci.edu 1
+hack.ics.uci.edu 1
+mlphysics.ics.uci.edu 1
 mse.ics.uci.edu 1
+pgadmin.ics.uci.edu 1
+psearch.ics.uci.edu 1
+sourcerer.ics.uci.edu 1
+speedtest.ics.uci.edu 1
 ------------------
 ----- Lenght of robotTXTs -----
-7
+61
 ------------------
