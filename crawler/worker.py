@@ -6,7 +6,7 @@ from urllib import robotparser
 from utils import get_logger, normalize, get_urlhash
 import scraper
 import time
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 
 
@@ -129,7 +129,8 @@ class Worker(Thread):
                                                     # Get the location within the url tags
                                                     actualURL = link.find("loc").text
                                                     print(f"appending {actualURL}")
-                                                    scraped_urls.append(actualURL)
+                                                    if scraper.is_valid(self.crawler, actualURL):
+                                                        scraped_urls.append(urljoin(resp.url, actualURL))
 
                                             # If there are nested sitemaps call recursive
                                             nested_sitemaps = sitemap_soup.find_all("sitemap")

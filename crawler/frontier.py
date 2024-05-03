@@ -47,7 +47,7 @@ class Frontier(object):
         tbd_count = 0
         with self.frontierLock:
             for url, completed in self.save.values():
-                if not completed and is_valid(url):
+                if not completed:
                     self.to_be_downloaded.append(url)
                     tbd_count += 1
             self.logger.info(

@@ -13,8 +13,8 @@ wordCountThreshold = 400
 contentToCodeRatioThreshold = 0.9
 uniqueWordRatioThreshold = 0.02
 linkToContentRatioThreshold = 10
-simHashThreshold = 0.8
-simHashQueueLength = 50
+simHashThreshold = 0.65
+simHashQueueLength = 80
 
 
 def scraper(crawler : crawler, url, resp): 
@@ -39,7 +39,8 @@ def extract_next_links(crawler, url, resp):
     
     # Parse the page content using beautiful soup
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
-    
+    if not is_valid(crawler, resp.url):
+        return []
     # Check for repeated paths again just in case it got in here
     if re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", resp.url):
         return []
@@ -140,6 +141,10 @@ def is_valid(crawler : crawler, url):
             if noFragmentURL in crawler.uniquePages:
                 return False
 
+        # Detect calander enteries
+        date_pattern = r'\d{4}-\d{2}-\d{2}'
+        if re.search(date_pattern, url):
+            return False
         # Ensure the netlock is a string for future functions
         if isinstance(parsedNetloc, bytes):
             parsedNetloc = parsed.netloc.decode('utf-8')  
@@ -150,8 +155,9 @@ def is_valid(crawler : crawler, url):
 
         
             # Check for repeated paths 
-        if re.match("^.*?(/.+?/).*?\1.*$|^.*?/(.+?/)\2.*$", url):
+        if re.search(r'/([^/]+)/\1/', url):
             return False
+        
         # Ensure the link visited is http
         if parsed.scheme not in set(["http", "https"]):
             return False
